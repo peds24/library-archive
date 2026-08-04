@@ -2,11 +2,17 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import '../global.css';
+import { initDatabase } from '@/src/services/database';
+import { useBookStore } from '@/src/store/bookStore';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const hydrate = useBookStore((s) => s.hydrate);
+
   useEffect(() => {
+    const books = initDatabase();
+    hydrate(books);
     SplashScreen.hideAsync();
   }, []);
 

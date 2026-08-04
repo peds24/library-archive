@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import { Book, BookStatus } from '@/src/types/book';
-import mockBooks from '@/src/data/mock-books.json';
+import { dbAddBook, dbDeleteBook, dbUpdateBook, dbUpdateStatus } from '@/src/services/database';
 
 interface BookStore {
   books: Book[];
+  hydrate: (books: Book[]) => void;
   addBook: (book: Book) => void;
   deleteBook: (id: string) => void;
   updateStatus: (id: string, status: BookStatus) => void;
@@ -11,17 +12,26 @@ interface BookStore {
 }
 
 export const useBookStore = create<BookStore>()((set) => ({
-  books: mockBooks as Book[],
-  addBook: (book) =>
-    set((state) => ({ books: [book, ...state.books] })),
-  deleteBook: (id) =>
-    set((state) => ({ books: state.books.filter((b) => b.id !== id) })),
-  updateStatus: (id, status) =>
+  books: [],
+  hydrate: (books) => set({ books }),
+  addBook: (book) => {
+    dbAddBook(book);
+    set((state) => ({ books: [book, ...state.books] }));
+  },
+  deleteBook: (id) => {
+    dbDeleteBook(id);
+    set((state) => ({ books: state.books.filter((b) => b.id !== id) }));
+  },
+  updateStatus: (id, status) => {
+    dbUpdateStatus(id, status);
     set((state) => ({
       books: state.books.map((b) => (b.id === id ? { ...b, status } : b)),
-    })),
-  updateBook: (id, updates) =>
+    }));
+  },
+  updateBook: (id, updates) => {
+    dbUpdateBook(id, updates);
     set((state) => ({
       books: state.books.map((b) => (b.id === id ? { ...b, ...updates } : b)),
-    })),
+    }));
+  },
 }));

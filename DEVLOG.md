@@ -420,6 +420,61 @@ Lookup chain: Open Library → Google Books (if key set) → manual entry form
 
 ---
 
+### 2026-08-04 — Phase 5: SQLite Persistence (branch: phase-5)
+
+**What happened:**
+- Merged `phase-4` into `main`, created `phase-5` branch.
+- Installed `expo-sqlite` (SDK 57 compatible).
+- Created `src/services/database.ts` — all SQLite logic isolated here:
+  - `initDatabase()`: creates the `books` table if it doesn't exist, seeds from `mock-books.json` only on first launch (when table is empty), returns the full books array.
+  - `dbAddBook()`, `dbDeleteBook()`, `dbUpdateStatus()`, `dbUpdateBook()` — one function per store action, each writes through to SQLite synchronously.
+- Updated `src/store/bookStore.ts`:
+  - Replaced JSON seed (`books: mockBooks as Book[]`) with an empty initial state (`books: []`).
+  - Added `hydrate(books)` action — called once at startup with the result of `initDatabase()`.
+  - Every mutation action now calls its corresponding `db*` function before updating in-memory state.
+- Updated `app/_layout.tsx`:
+  - Calls `initDatabase()` synchronously in the startup `useEffect`, hydrates the store, then hides the splash screen.
+  - Splash screen stays visible until the DB is ready — no flash of empty state.
+
+**Design Decisions:**
+
+*Why synchronous SQLite (`openDatabaseSync`, `execSync`, `runSync`) instead of the async API?*
+The entire DB init happens once, before the splash screen hides. Using the sync API keeps the startup sequence simple: init → hydrate → hide splash. An async approach would require managing loading state across the app (a boolean in the store, a guard in every tab screen) to prevent rendering before data is ready. The sync cost on a small table (≤ a few hundred books) is imperceptible.
+
+*Why call `initDatabase()` in `_layout.tsx` rather than inside the store initializer?*
+`expo-sqlite` requires a React Native runtime environment — it can't be imported at module evaluation time in the store file because the module is parsed before the native runtime is fully initialized. Calling it inside a `useEffect` in the root layout component ensures the native bridge is ready.
+
+*Why keep DB logic in `database.ts` separate from the store?*
+The store owns in-memory state and React reactivity; `database.ts` owns persistence. Mixing them would make the store harder to test and the DB logic harder to replace (e.g. if we ever switch to a different storage backend). Each layer has one job.
+
+*Why seed on first launch only (when table is empty) rather than always from JSON?*
+Seeding every launch would overwrite any user changes on restart. The empty-table check is the simplest migration path: the seed only runs once, and every subsequent launch reads what the user has actually built.
+
+**Architecture state after this session:**
+```
+Phase 5 COMPLETE. App is now fully persistent.
+
+src/
+  services/
+    database.ts     — NEW: SQLite init, seed, and per-action write-through functions
+
+src/store/
+  bookStore.ts      — starts empty, hydrated from DB on launch; all mutations write to DB
+
+app/
+  _layout.tsx       — initDatabase() → hydrate() → hideAsync() on startup
+
+Data flow:
+  Launch → initDatabase() (create table, seed if empty, return rows)
+         → hydrate(books) → Zustand in-memory state
+  Mutation → db*() write-through → Zustand state update → UI re-render
+  Next launch → reads persisted rows, not mock JSON
+
+No migration system yet — schema changes require clearing app data.
+```
+
+---
+
 <!-- TEMPLATE — copy this block to start a new session entry
 
 ### YYYY-MM-DD — Session Title
