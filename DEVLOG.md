@@ -194,6 +194,89 @@ Next: Phase 3 — Google Books API integration + Add Book screen
 
 ---
 
+### 2026-08-04 — Phase 3: Google Books API & Add Book Flow (branch: phase-3)
+
+**What happened:**
+- Merged `phase-2` into `main`, created `phase-3` branch.
+- Created `src/services/googleBooks.ts` — fetches `https://www.googleapis.com/books/v1/volumes?q=isbn:{ISBN}`, maps the `volumeInfo` response shape to the local `Book` type, upgrades the thumbnail URL from `http://` to `https://` and bumps `zoom=1` to `zoom=3` for better cover resolution.
+- Added `addBook` action to `src/store/bookStore.ts` — prepends the new book to the front of the array (most recently added appears first).
+- Created `app/add.tsx` — multi-state screen: ISBN text input → loading spinner → preview card (cover, title, author, genre/pages/year) → "Add to Library" / "Search another ISBN". Handles not-found, network error, and duplicate book cases.
+- Added a "+" button to the Library tab header that opens the add screen as a modal.
+- Registered `add` screen in `app/_layout.tsx` with `presentation: 'modal'`.
+
+**Design Decisions:**
+
+*Why a modal for the Add Book screen rather than a tab or a pushed screen?*
+The add flow is transient — you come, you search, you add or cancel, you leave. A modal (slides up from the bottom) communicates that intent better than pushing a screen onto the stack (which implies you're going deeper into related content). Tabs are for persistent destinations you return to frequently; add is a tool you use occasionally.
+
+*Why a "+" button in the Library header rather than adding a third tab?*
+A permanent "Add" tab would feel like a destination, but adding is an action. The "+" in the header is a well-understood mobile pattern. Also, Phase 4 will change the add flow significantly (camera scanning), so keeping it out of the tab bar avoids having to redesign the navigation then.
+
+*Why upgrade the Google Books cover URL from `zoom=1` to `zoom=3`?*
+The API returns `zoom=1` thumbnails by default which are very small (roughly 128×192px). Changing to `zoom=3` gives a noticeably sharper image on modern screens without requiring a separate API call. The `http://` → `https://` upgrade is required because React Native's Image component rejects non-secure URLs in release builds.
+
+*Why handle the duplicate case in the screen rather than in the store's `addBook` action?*
+The store is intentionally dumb — it trusts its callers. Putting the duplicate check in the screen keeps the store focused on state mutations and lets the UI decide how to communicate the problem to the user (an inline message in this case). If we ever add a bulk import flow, that flow can make its own decision about duplicates.
+
+*Why prepend new books instead of appending?*
+The Library view's default sort is "Recent" (by `dateAdded`). Since the store is the source of truth and SQLite doesn't exist yet, putting the new book at the front of the array is the cheapest way to make it appear first without re-sorting the whole list on every render.
+
+**Architecture state after this session:**
+```
+Phase 3 COMPLETE.
+
+app/
+  _layout.tsx         — add screen registered as modal
+  (tabs)/
+    _layout.tsx       — Library header has '+' → /add
+  add.tsx             — ISBN input → API fetch → preview → confirm
+
+src/
+  services/
+    googleBooks.ts    — fetchBookByISBN(): ISBN → Book | null
+  store/
+    bookStore.ts      — addBook() action added
+
+API: Open Library (no key, no rate limits)
+Data flow: ISBN → openLibrary.ts → preview state → addBook() → Zustand → UI re-renders
+
+Next: Phase 4 — expo-camera barcode scanner replacing manual ISBN entry
+```
+
+---
+
+### 2026-08-04 — Switch book lookup from Google Books to Open Library (branch: phase-3)
+
+**What happened:**
+- Deleted `src/services/googleBooks.ts` and all API key scaffolding (`.env.local`, `.env.example`).
+- Created `src/services/openLibrary.ts` — same `fetchBookByISBN(isbn)` interface, now calling `https://openlibrary.org/api/books?bibkeys=ISBN:{isbn}&jscmd=data&format=json`.
+- Cover images constructed directly from the ISBN: `https://covers.openlibrary.org/b/isbn/{isbn}-L.jpg` — the same CDN format already used in `mock-books.json`.
+- Updated `app/add.tsx` to import from the new service. Removed the `rate-limited` error phase (no longer needed).
+- Updated `CLAUDE.md` to document the new API and correct the phase status.
+
+**Why the switch was made:**
+The original plan specified Google Books API. During Phase 3 implementation, Google's unauthenticated endpoint immediately returned 429 (rate limited). The fix would have required every developer to register a Google Cloud project, enable the Books API, and generate an API key — meaningful setup friction for what is a personal, single-user tool.
+
+Open Library is the better fit because:
+- No API key, no account, no setup — it works out of the box
+- No rate limits for personal-scale usage
+- Cover images use the same `covers.openlibrary.org` CDN already in the seed data, making the source of truth consistent across mock and live data
+- The only real tradeoff is genre data: Open Library's `subjects` field is often missing or overly broad, but we already default to `"Uncategorized"` which is acceptable for Phase 3
+
+**Architecture state after this session:**
+```
+Phase 3 COMPLETE (revised).
+
+src/
+  services/
+    openLibrary.ts    — fetchBookByISBN(): calls Open Library, no key needed
+                        cover URL: covers.openlibrary.org/b/isbn/{isbn}-L.jpg
+
+No env files needed. No external credentials required to run the app.
+```
+
+---
+
 <!-- TEMPLATE — copy this block to start a new session entry
 
 ### YYYY-MM-DD — Session Title

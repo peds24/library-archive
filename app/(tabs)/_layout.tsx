@@ -1,7 +1,10 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
+import { Pressable } from 'react-native';
 import { SymbolView } from 'expo-symbols';
 
 export default function TabLayout() {
+  const router = useRouter();
+
   return (
     <Tabs
       screenOptions={{
@@ -36,6 +39,19 @@ export default function TabLayout() {
               tintColor={color}
               size={24}
             />
+          ),
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push('/add')}
+              style={{ marginRight: 16 }}
+              hitSlop={8}
+            >
+              <SymbolView
+                name={{ ios: 'plus', android: 'add', web: 'add' }}
+                tintColor="#b45309"
+                size={26}
+              />
+            </Pressable>
           ),
         }}
       />

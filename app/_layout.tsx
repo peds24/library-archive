@@ -21,6 +21,7 @@ export default function RootLayout() {
     <Stack screenOptions={headerBase}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="book/[id]" options={{ title: '' }} />
+      <Stack.Screen name="add" options={{ title: 'Add Book', presentation: 'modal' }} />
       <Stack.Screen name="+not-found" />
     </Stack>
   );
