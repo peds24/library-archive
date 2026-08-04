@@ -11,7 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { fetchBookByISBN } from '@/src/services/googleBooks';
+import { fetchBookByISBN } from '@/src/services/openLibrary';
 import { useBookStore } from '@/src/store/bookStore';
 import { Book } from '@/src/types/book';
 
@@ -122,7 +122,7 @@ export default function AddBookScreen() {
         {phase === 'error' && (
           <View className="flex-1 items-center justify-center px-8 gap-4">
             <Text className="text-stone-500 text-base text-center">
-              Couldn't reach the server.{'\n'}Check your connection and try again.
+              Couldn't reach Open Library.{'\n'}Check your connection and try again.
             </Text>
             <Pressable onPress={() => setPhase('input')}>
               <Text className="text-amber-700 font-semibold">Try again</Text>

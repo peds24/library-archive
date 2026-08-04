@@ -237,10 +237,42 @@ src/
   store/
     bookStore.ts      — addBook() action added
 
-API: Google Books (no auth key required for read-only ISBN lookups)
-Data flow: ISBN → googleBooks.ts → preview state → addBook() → Zustand → UI re-renders
+API: Open Library (no key, no rate limits)
+Data flow: ISBN → openLibrary.ts → preview state → addBook() → Zustand → UI re-renders
 
 Next: Phase 4 — expo-camera barcode scanner replacing manual ISBN entry
+```
+
+---
+
+### 2026-08-04 — Switch book lookup from Google Books to Open Library (branch: phase-3)
+
+**What happened:**
+- Deleted `src/services/googleBooks.ts` and all API key scaffolding (`.env.local`, `.env.example`).
+- Created `src/services/openLibrary.ts` — same `fetchBookByISBN(isbn)` interface, now calling `https://openlibrary.org/api/books?bibkeys=ISBN:{isbn}&jscmd=data&format=json`.
+- Cover images constructed directly from the ISBN: `https://covers.openlibrary.org/b/isbn/{isbn}-L.jpg` — the same CDN format already used in `mock-books.json`.
+- Updated `app/add.tsx` to import from the new service. Removed the `rate-limited` error phase (no longer needed).
+- Updated `CLAUDE.md` to document the new API and correct the phase status.
+
+**Why the switch was made:**
+The original plan specified Google Books API. During Phase 3 implementation, Google's unauthenticated endpoint immediately returned 429 (rate limited). The fix would have required every developer to register a Google Cloud project, enable the Books API, and generate an API key — meaningful setup friction for what is a personal, single-user tool.
+
+Open Library is the better fit because:
+- No API key, no account, no setup — it works out of the box
+- No rate limits for personal-scale usage
+- Cover images use the same `covers.openlibrary.org` CDN already in the seed data, making the source of truth consistent across mock and live data
+- The only real tradeoff is genre data: Open Library's `subjects` field is often missing or overly broad, but we already default to `"Uncategorized"` which is acceptable for Phase 3
+
+**Architecture state after this session:**
+```
+Phase 3 COMPLETE (revised).
+
+src/
+  services/
+    openLibrary.ts    — fetchBookByISBN(): calls Open Library, no key needed
+                        cover URL: covers.openlibrary.org/b/isbn/{isbn}-L.jpg
+
+No env files needed. No external credentials required to run the app.
 ```
 
 ---

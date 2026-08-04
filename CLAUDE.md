@@ -29,6 +29,8 @@ npx tsc --noEmit        # Type-check without emitting
 **Source layout:**
 - `app/` — Expo Router screens (must stay at root)
 - `src/components/` — reusable UI components (`BookCard`, `FilterBar`)
+- `src/services/openLibrary.ts` — Open Library API client (no key required)
+- `src/store/bookStore.ts` — Zustand store
 - `src/types/book.ts` — canonical `Book` interface and `BookStatus` type
 - `src/data/mock-books.json` — seed data (5 books covering all statuses)
 - `docs/` — planning docs (`PROJECT_PLAN.md`, `TECH_STACK.md`, `brainstorm.md`)
@@ -39,7 +41,7 @@ npx tsc --noEmit        # Type-check without emitting
 
 **Database (`expo-sqlite`):** Single `books` table. On app start, check if table is empty; if so, seed from `src/data/mock-books.json`. *(Phase 5 — not yet built)*
 
-**Book Lookup:** Google Books API — `https://www.googleapis.com/books/v1/volumes?q=isbn:{ISBN}`. Native `fetch`. No auth required. *(Phase 3 — not yet built)*
+**Book Lookup:** Open Library API — `https://openlibrary.org/api/books?bibkeys=ISBN:{isbn}&jscmd=data&format=json`. No API key required. Cover images via `https://covers.openlibrary.org/b/isbn/{isbn}-L.jpg` (same CDN used in seed data). Implemented in `src/services/openLibrary.ts`.
 
 **Barcode Scanning (`expo-camera`):** Bulk flow: scan → preview → add to temp array → reset scanner → repeat → "Confirm All" commits to store/DB. *(Phase 4 — not yet built)*
 
@@ -75,9 +77,9 @@ Do not skip this step, even for small changes. The log is a learning record the 
 
 ## Build Phases
 
-The project follows a phased plan (see `docs/PROJECT_PLAN.md`). Current state: **Phase 1 complete** — static UI with mock data, no state management or persistence yet. The phases are:
-1. Static prototype with `mock-books.json`
-2. Book detail view + Zustand state
-3. Google Books API integration
+The project follows a phased plan (see `docs/PROJECT_PLAN.md`). Current state: **Phase 3 complete**. The phases are:
+1. ✅ Static prototype with `mock-books.json`
+2. ✅ Book detail view + Zustand state
+3. ✅ Open Library API integration (originally planned as Google Books — switched for no-key simplicity)
 4. Camera/barcode scanning
 5. SQLite persistence
