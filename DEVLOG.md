@@ -142,6 +142,58 @@ Branch: phase-1
 
 ---
 
+### 2026-08-04 — Phase 2: Zustand Store, Book Detail, Editable Status (branch: phase-2)
+
+**What happened:**
+- Merged `phase-1` into `main`, created `phase-2` branch.
+- Installed Zustand v5.
+- Created `src/store/bookStore.ts` — single store seeded from `mock-books.json`, exposes `books` array and `updateStatus(id, status)` action.
+- Created `app/book/[id].tsx` — book detail screen: large cover image, metadata rows (genre, pages, published year, date added), and a status picker with four colored pills.
+- Updated `app/(tabs)/index.tsx` and `library.tsx` to read from the store instead of importing JSON directly.
+- Made `BookCard` tappable via an `onPress` prop — both tab screens navigate to `/book/[id]` on tap.
+- Styled the stack header for the detail screen (amber back button, stone background) in `app/_layout.tsx`.
+
+**Design Decisions:**
+
+*Why seed Zustand from JSON rather than initializing an empty store?*
+For Phases 1–4, there's no persistence layer (SQLite comes in Phase 5). If the store started empty, the app would show nothing. Seeding from the mock JSON file means the UI is always populated during development and the Phase 5 migration is a drop-in: swap the JSON seed for a SQLite read in the store initializer.
+
+*Why put `updateStatus` directly on the store rather than a separate action file?*
+There's currently one action and one data type. Extracting actions to separate files at this scale would be premature — it adds indirection without benefit. If the store grows beyond 3–4 actions, splitting it out is the right call.
+
+*Why use colored status pills instead of a dropdown or modal picker?*
+There are exactly four statuses, all of which are meaningful to the user at a glance. Pills let you see all options simultaneously and tap in one gesture — no extra overlay to dismiss. A picker or modal would take more taps for no added clarity.
+
+*Why do status changes reflect immediately in the list screens?*
+Zustand's store is shared across the entire component tree. The tab screens subscribe to `state.books`, so any `updateStatus` call re-renders them automatically — no manual sync needed. This is the primary reason for introducing Zustand in Phase 2 rather than keeping local component state.
+
+**Architecture state after this session:**
+```
+Phase 2 COMPLETE.
+
+app/
+  _layout.tsx         — stack header styled; book/[id] screen registered
+  (tabs)/
+    index.tsx         — reads from store; BookCard navigates to detail
+    library.tsx       — reads from store; BookCard navigates to detail
+  book/
+    [id].tsx          — detail view: cover + metadata + status picker
+
+src/
+  store/
+    bookStore.ts      — Zustand store: books[], updateStatus()
+  components/
+    BookCard.tsx      — now accepts onPress prop, wrapped in Pressable
+
+State: IN-MEMORY via Zustand. Changes survive navigation within a session
+       but are lost on app restart (SQLite persistence = Phase 5).
+Storage: NONE yet.
+
+Next: Phase 3 — Google Books API integration + Add Book screen
+```
+
+---
+
 <!-- TEMPLATE — copy this block to start a new session entry
 
 ### YYYY-MM-DD — Session Title
