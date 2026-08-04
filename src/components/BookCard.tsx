@@ -1,4 +1,4 @@
-import { Image, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 import { Book } from '@/src/types/book';
 
 const STATUS_BG: Record<Book['status'], string> = {
@@ -26,11 +26,13 @@ interface Props {
   book: Book;
   variant?: 'large' | 'compact';
   showStatus?: boolean;
+  onPress?: () => void;
 }
 
-export default function BookCard({ book, variant = 'compact', showStatus = false }: Props) {
+export default function BookCard({ book, variant = 'compact', showStatus = false, onPress }: Props) {
   if (variant === 'large') {
     return (
+      <Pressable onPress={onPress} className="active:opacity-70">
       <View className="bg-white rounded-2xl p-4 flex-row gap-4 border border-stone-100">
         <Image
           source={{ uri: book.coverImage }}
@@ -47,10 +49,12 @@ export default function BookCard({ book, variant = 'compact', showStatus = false
           </Text>
         </View>
       </View>
+      </Pressable>
     );
   }
 
   return (
+    <Pressable onPress={onPress} className="active:opacity-70">
     <View className="bg-white rounded-xl p-3 flex-row items-center gap-3 border border-stone-100">
       <Image
         source={{ uri: book.coverImage }}
@@ -72,5 +76,6 @@ export default function BookCard({ book, variant = 'compact', showStatus = false
         </View>
       )}
     </View>
+    </Pressable>
   );
 }
