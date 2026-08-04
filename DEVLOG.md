@@ -277,6 +277,58 @@ No env files needed. No external credentials required to run the app.
 
 ---
 
+### 2026-08-04 — Phase 4: Camera & Bulk Scanning (branch: phase-4)
+
+**What happened:**
+- Created `phase-4` branch from `main`.
+- Installed `expo-camera`, added plugin to `app.json` (handles Android camera permission declaration automatically).
+- Created `app/scan.tsx` — full-screen camera scanner with:
+  - Live `CameraView` watching for EAN-13, EAN-8, UPC-A, UPC-E barcodes
+  - Scan frame overlay to guide the user
+  - Open Library lookup fires automatically on scan
+  - Bottom-sheet preview card for each result (cover, title, author, genre/pages)
+  - **Single mode** (default): confirm one book → add to library → back
+  - **Bulk mode** (toggled via "Bulk" button in header): add to queue → resume scanning → "Confirm All" adds everything at once
+  - Duplicate detection against both the existing library and the current bulk queue
+  - not-found and network-error states with "Scan another" recovery
+- Updated `app/add.tsx`: added "Scan Barcode" button below the manual ISBN input that pushes to the scan screen.
+- Registered `app/scan.tsx` in `app/_layout.tsx` with a dark header (black bg, white text) to blend with the camera UI.
+
+**Design Decisions:**
+
+*Why a separate `app/scan.tsx` instead of embedding camera in `app/add.tsx`?*
+The camera UI is fundamentally different from the manual-entry UI — full screen, dark background, no keyboard, different header. Putting them in the same file would mean one component managing two completely different visual contexts via a mode flag. A separate screen keeps each concern isolated and makes the navigation model clear: add.tsx chooses the entry method, scan.tsx owns the camera experience.
+
+*Why a `isProcessing` ref instead of state for preventing duplicate scans?*
+State updates are asynchronous in React. If a barcode fires twice before the re-render sets `phase` to `'fetching'`, both events would trigger API calls. A ref updates synchronously and is checked before any async work starts, making it a reliable guard without adding a render cycle.
+
+*Why bulk mode as a toggle rather than a separate screen/flow?*
+The physical action of bulk scanning (point → scan → queue → repeat) happens in a tight loop. Breaking it across multiple screens would add navigation overhead between each scan. Keeping it as a mode on the same screen lets you stay in the camera view the entire time, with the "Confirm All" bar appearing at the bottom as the queue grows.
+
+*Why EAN-13, EAN-8, UPC-A, UPC-E and not all barcode types?*
+`expo-camera` scans faster when you narrow the barcode type list — it only runs the decoders for specified formats. Books use EAN-13 (ISBN-13) almost universally; EAN-8 and UPC variants cover older and some US-market books. Including QR, Data Matrix, etc. would slow detection for no benefit.
+
+*Why a dark header for the scan screen?*
+The camera view is black. A light-coloured header would create a jarring contrast at the top of the screen. A dark header (`#000` bg, white text) makes the scanner feel like a single unified surface.
+
+**Architecture state after this session:**
+```
+Phase 4 COMPLETE.
+
+app/
+  scan.tsx            — camera scanner: single + bulk modes, bottom-sheet previews
+  add.tsx             — now has 'Scan Barcode' button → /scan
+
+Entry flow:
+  Library '+' → /add (modal) → type ISBN  OR  tap 'Scan Barcode' → /scan (full-screen)
+
+Requires physical Android device for camera — does not work in web or emulator.
+
+Next: Phase 5 — SQLite persistence (status changes and added books survive app restart)
+```
+
+---
+
 <!-- TEMPLATE — copy this block to start a new session entry
 
 ### YYYY-MM-DD — Session Title
