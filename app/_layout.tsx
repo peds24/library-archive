@@ -10,9 +10,17 @@ export default function RootLayout() {
     SplashScreen.hideAsync();
   }, []);
 
+  const headerBase = {
+    headerStyle: { backgroundColor: '#fafaf9' },
+    headerShadowVisible: false,
+    headerTintColor: '#b45309',
+    headerTitleStyle: { color: '#1c1917', fontWeight: '600' as const, fontSize: 16 },
+  };
+
   return (
-    <Stack>
+    <Stack screenOptions={headerBase}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="book/[id]" options={{ title: '' }} />
       <Stack.Screen name="+not-found" />
     </Stack>
   );

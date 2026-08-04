@@ -1,11 +1,10 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, View } from 'react-native';
 import BookCard from '@/src/components/BookCard';
 import FilterBar from '@/src/components/FilterBar';
-import { Book, BookStatus } from '@/src/types/book';
-import rawBooks from '@/src/data/mock-books.json';
-
-const books = rawBooks as Book[];
+import { useBookStore } from '@/src/store/bookStore';
+import { BookStatus } from '@/src/types/book';
 
 type FilterOption = 'all' | BookStatus;
 type SortOption = 'recent' | 'az' | 'za';
@@ -25,6 +24,8 @@ const SORT_OPTIONS: { label: string; value: SortOption }[] = [
 ];
 
 export default function LibraryScreen() {
+  const router = useRouter();
+  const books = useBookStore((state) => state.books);
   const [filter, setFilter] = useState<FilterOption>('all');
   const [sort, setSort] = useState<SortOption>('recent');
 
@@ -44,7 +45,14 @@ export default function LibraryScreen() {
         data={displayed}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, gap: 10 }}
-        renderItem={({ item }) => <BookCard book={item} variant="compact" showStatus />}
+        renderItem={({ item }) => (
+          <BookCard
+            book={item}
+            variant="compact"
+            showStatus
+            onPress={() => router.push(`/book/${item.id}`)}
+          />
+        )}
       />
     </View>
   );
