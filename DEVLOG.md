@@ -329,6 +329,45 @@ Next: Phase 5 — SQLite persistence (status changes and added books survive app
 
 ---
 
+### 2026-08-04 — Delete book + inline genre/pages editing (branch: phase-4)
+
+**What happened:**
+- Added `deleteBook(id)` and `updateBook(id, updates)` actions to `src/store/bookStore.ts`.
+- Updated `app/book/[id].tsx`:
+  - Trash icon in the header triggers an `Alert.alert` confirmation, then calls `deleteBook` and navigates back.
+  - Genre and Pages metadata rows now show a small pencil icon and are tappable — tapping switches the row to an inline `TextInput` with an amber underline. Saves on keyboard return or blur. Empty genre or zero pages reverts to the previous value.
+  - Published and Added rows remain read-only (those values don't change after the book is added).
+
+**Design Decisions:**
+
+*Why inline editing rather than an edit mode for the whole screen?*
+Only two fields need to be editable (genre and pages). Putting the whole screen into an "edit mode" would add a toggle button and require the user to explicitly enter/exit editing for two fields. Tapping directly on the field is fewer taps and makes it obvious which fields are editable (the pencil icon signals it) vs. read-only.
+
+*Why save on blur rather than requiring an explicit save button?*
+An explicit "Save" button next to each field clutters the layout. Saving on blur (when the user taps away or presses Done on the keyboard) is standard mobile behaviour for inline text fields. If the user types nothing or clears the field, the value reverts — so there's no risk of accidentally blanking a field.
+
+*Why a red trash icon in the header rather than a "Remove" button at the bottom?*
+The header is always visible while scrolling, so the action is always reachable. Placing it in the header also follows the established mobile pattern (iOS Mail, iOS Contacts, etc.) that makes destructive actions available via a header icon behind a confirmation. A bottom button would require scrolling to reach and could be accidentally tapped.
+
+*Why Alert.alert for the delete confirmation rather than a custom modal?*
+`Alert.alert` uses the native OS dialog, which is instantly recognisable to the user as a destructive confirmation and requires no custom UI work. A custom modal would be more visually consistent but adds complexity for no functional gain.
+
+**Architecture state after this session:**
+```
+Store now has 4 actions:
+  addBook()       — Phase 3
+  deleteBook()    — NEW: removes by id
+  updateStatus()  — Phase 2
+  updateBook()    — NEW: updates genre and/or pages by id
+
+Book detail screen has 3 interactive zones:
+  Header trash icon  → delete with confirmation
+  Genre / Pages rows → inline edit (tap to edit, blur to save)
+  Status pills       → tap to change status
+```
+
+---
+
 <!-- TEMPLATE — copy this block to start a new session entry
 
 ### YYYY-MM-DD — Session Title
