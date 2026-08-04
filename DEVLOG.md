@@ -368,6 +368,58 @@ Book detail screen has 3 interactive zones:
 
 ---
 
+### 2026-08-04 — Google Books fallback + manual book entry (branch: phase-4)
+
+**What happened:**
+- Identified that new-release ISBNs (e.g. 9781534332560) sometimes aren't in Open Library — the print run is too recent for Open Library's metadata to have caught up. The same title may exist in Google Books under a different edition ISBN.
+- Implemented a three-tier lookup: Open Library first → Google Books silent fallback → manual entry form.
+- Created `src/services/googleBooks.ts` — fetches `https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}`, returns `null` silently if no API key is configured (no crash, no error shown to user), throws on network failure.
+- Created `src/services/bookLookup.ts` — orchestration layer: calls Open Library, catches network errors, falls back to Google Books, returns `null` only if both miss.
+- Created `.env.example` (committed to repo) and `.env.local` (gitignored) for the `EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY` variable. The app works without a key — Google Books simply isn't queried.
+- Created `app/manual-entry.tsx` — a modal form with ISBN (pre-filled from route param), Title (required), Author (required), Genre, Pages, and Published Year fields. ISBN falls back to a `manual-{timestamp}` ID if left blank (for books without barcodes). Duplicate check prevents adding the same ISBN twice.
+- Updated `app/add.tsx` and `app/scan.tsx` to use `lookupByISBN` from `bookLookup.ts` instead of calling `openLibrary.ts` directly.
+- Added "Add Manually" CTA in the `not-found` state of both screens — passes the scanned/typed ISBN as a route param so the form is pre-filled.
+- Registered `manual-entry` screen in `app/_layout.tsx` as a modal.
+
+**Design Decisions:**
+
+*Why a separate `bookLookup.ts` orchestration module rather than putting the fallback logic inside each screen?*
+`add.tsx` and `scan.tsx` both need the same fallback behaviour. Centralizing it in `bookLookup.ts` means the lookup chain is defined once and both callers stay simple. If we add a third data source later (e.g. ISBNdb), there's one file to update.
+
+*Why does Google Books return `null` silently when no API key is configured rather than showing an error?*
+For users who haven't set up a key, the Google Books step should be invisible — it's a best-effort enhancement, not a required feature. Showing an error or a "configure API key" message would confuse users who just want to add books. The fallback chain is: Open Library → (GB if key exists) → manual entry. Manual entry is always available as a last resort.
+
+*Why use `EXPO_PUBLIC_` prefix for the API key?*
+Expo's build system only bundles environment variables with this prefix into the client-side JavaScript bundle. Without it, `process.env.EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY` would be `undefined` at runtime in the app — the prefix is required, not optional, for Expo managed workflow.
+
+*Why is manual entry a modal rather than a pushed screen?*
+It sits at the end of the Add flow (which is already a modal) or the Scan flow. Using `router.dismissAll()` after a successful add closes the entire modal stack cleanly, taking the user back to the Library without needing to pop multiple screens. A pushed screen would require navigating back through the add/scan screen before returning to the tab.
+
+*Why require only Title and Author for manual entry, not ISBN?*
+ISBN is optional in manual entry because the user is specifically in this flow because the ISBN lookup failed — forcing them to enter it again adds friction. For books without a barcode at all (hand-written journals, uncatalogued items), there's no ISBN to enter. Genre, Pages, and Year are optional because Open Library often leaves them blank anyway and the user can always fill them in later via the inline edit on the detail screen.
+
+**Architecture state after this session:**
+```
+src/
+  services/
+    openLibrary.ts    — primary lookup (unchanged)
+    googleBooks.ts    — NEW: secondary fallback, requires EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY
+    bookLookup.ts     — NEW: orchestration: OL → GB → null
+
+app/
+  _layout.tsx         — manual-entry registered as modal
+  add.tsx             — uses lookupByISBN; not-found state has 'Add Manually' button
+  scan.tsx            — uses lookupByISBN; not-found state has 'Add Manually' button
+  manual-entry.tsx    — NEW: manual form, ISBN pre-filled from route param
+
+.env.example          — committed template (empty key)
+.env.local            — gitignored (user fills in API key)
+
+Lookup chain: Open Library → Google Books (if key set) → manual entry form
+```
+
+---
+
 <!-- TEMPLATE — copy this block to start a new session entry
 
 ### YYYY-MM-DD — Session Title

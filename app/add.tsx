@@ -11,7 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { fetchBookByISBN } from '@/src/services/openLibrary';
+import { lookupByISBN } from '@/src/services/bookLookup';
 import { useBookStore } from '@/src/store/bookStore';
 import { Book } from '@/src/types/book';
 
@@ -37,7 +37,7 @@ export default function AddBookScreen() {
     setPhase('loading');
     setIsDuplicate(false);
     try {
-      const book = await fetchBookByISBN(cleaned);
+      const book = await lookupByISBN(cleaned);
       if (!book) {
         setPhase('not-found');
       } else {
@@ -124,10 +124,17 @@ export default function AddBookScreen() {
         {phase === 'not-found' && (
           <View className="flex-1 items-center justify-center px-8 gap-4">
             <Text className="text-stone-500 text-base text-center">
-              No book found for that ISBN.{'\n'}Double-check the number and try again.
+              No book found for that ISBN.{'\n'}You can add it manually instead.
             </Text>
+            <Pressable
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              onPress={() => router.push({ pathname: '/manual-entry' as any, params: { isbn: cleanISBN(isbn) } })}
+              className="bg-amber-700 px-6 py-3 rounded-xl"
+            >
+              <Text className="text-white font-semibold">Add Manually</Text>
+            </Pressable>
             <Pressable onPress={handleReset}>
-              <Text className="text-amber-700 font-semibold">Try another ISBN</Text>
+              <Text className="text-stone-400 font-medium">Try another ISBN</Text>
             </Pressable>
           </View>
         )}

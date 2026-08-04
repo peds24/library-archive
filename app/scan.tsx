@@ -9,7 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { fetchBookByISBN } from '@/src/services/openLibrary';
+import { lookupByISBN } from '@/src/services/bookLookup';
 import { useBookStore } from '@/src/store/bookStore';
 import { Book } from '@/src/types/book';
 
@@ -25,6 +25,7 @@ export default function ScanScreen() {
 
   const [phase, setPhase] = useState<ScanPhase>('scanning');
   const [preview, setPreview] = useState<Book | null>(null);
+  const [lastIsbn, setLastIsbn] = useState('');
   const [bulkQueue, setBulkQueue] = useState<Book[]>([]);
   const [isBulk, setIsBulk] = useState(false);
   const isProcessing = useRef(false);
@@ -55,10 +56,11 @@ export default function ScanScreen() {
   async function handleBarcodeScanned({ data: isbn }: { data: string }) {
     if (isProcessing.current) return;
     isProcessing.current = true;
+    setLastIsbn(isbn);
     setPhase('fetching');
 
     try {
-      const book = await fetchBookByISBN(isbn);
+      const book = await lookupByISBN(isbn);
       if (!book) {
         setPhase('not-found');
       } else if (books.some((b) => b.id === isbn) || bulkQueue.some((b) => b.id === isbn)) {
@@ -187,7 +189,7 @@ export default function ScanScreen() {
               <View className="items-center gap-2 py-2">
                 <Text className="text-stone-900 font-semibold text-base">Book not found</Text>
                 <Text className="text-stone-400 text-sm text-center">
-                  This ISBN wasn't in Open Library.{'\n'}Try scanning again or add it manually.
+                  This ISBN wasn't in any database.{'\n'}Add it manually or scan another.
                 </Text>
               </View>
             )}
@@ -221,10 +223,25 @@ export default function ScanScreen() {
               </View>
             )}
 
-            {(phase === 'duplicate' || phase === 'not-found' || phase === 'error') && (
+            {(phase === 'duplicate' || phase === 'error') && (
               <Pressable onPress={resumeScanning} className="bg-stone-100 py-3 rounded-xl items-center">
                 <Text className="text-stone-700 font-semibold">Scan another</Text>
               </Pressable>
+            )}
+
+            {phase === 'not-found' && (
+              <View className="gap-2">
+                <Pressable
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  onPress={() => router.push({ pathname: '/manual-entry' as any, params: { isbn: lastIsbn } })}
+                  className="bg-amber-700 py-3 rounded-xl items-center"
+                >
+                  <Text className="text-white font-semibold">Add Manually</Text>
+                </Pressable>
+                <Pressable onPress={resumeScanning} className="bg-stone-100 py-3 rounded-xl items-center">
+                  <Text className="text-stone-700 font-semibold">Scan another</Text>
+                </Pressable>
+              </View>
             )}
           </View>
         )}
