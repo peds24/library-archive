@@ -97,6 +97,20 @@ export default function AddBookScreen() {
               {phase === 'loading' ? 'Searching…' : 'Search'}
             </Text>
           </Pressable>
+
+          <View className="flex-row items-center gap-3">
+            <View className="flex-1 h-px bg-stone-200" />
+            <Text className="text-stone-400 text-xs">or</Text>
+            <View className="flex-1 h-px bg-stone-200" />
+          </View>
+
+          <Pressable
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            onPress={() => router.push('/scan' as any)}
+            className="py-3 rounded-xl items-center border border-stone-200"
+          >
+            <Text className="text-stone-600 font-semibold text-base">Scan Barcode</Text>
+          </Pressable>
         </View>
 
         {/* Loading */}
