@@ -118,6 +118,30 @@ Next: Phase 2 — Book detail view + Zustand store
 
 ---
 
+### 2026-08-04 — Rename `default` status to `shelved` (branch: phase-1)
+
+**What happened:**
+- Created git branch `phase-1` for all Phase 1 work going forward.
+- Changed `"status": "default"` → `"status": "shelved"` in `src/data/mock-books.json` (The Shadow of the Wind entry).
+- Updated two stale references in `docs/brainstorm.md` that still called the status "default (in shelf)".
+
+**Design Decisions:**
+
+*Why was this a change at all — wasn't it already "shelved" in the type?*
+Yes. The `BookStatus` type (`src/types/book.ts`) already used `'shelved'` from the start, and all the UI labels and filter buttons said "Shelved". The mock data was the one place that slipped through using `"default"` — a leftover from the original brainstorm before the name was finalized. TypeScript didn't catch it because the JSON import isn't strictly typed against `BookStatus` at the point of import; a `Book[]` cast was done at the screen level.
+
+*Why "shelved" and not keep "default"?*
+"Default" is a programming concept, not a library concept. "Shelved" describes what the book actually is — on the shelf, owned, not actively being read and not queued up. It's the most honest label and maps directly to how a physical library works.
+
+**Architecture state after this session:**
+```
+No structural change. Data model is now fully consistent:
+BookStatus = 'shelved' | 'reading' | 'tbr' | 'read'  (no "default" anywhere)
+Branch: phase-1
+```
+
+---
+
 <!-- TEMPLATE — copy this block to start a new session entry
 
 ### YYYY-MM-DD — Session Title
