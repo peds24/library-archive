@@ -1,0 +1,57 @@
+[
+  {
+    "id": "9780441172719",
+    "title": "Dune",
+    "author": "Frank Herbert",
+    "coverImage": "https://covers.openlibrary.org/b/isbn/9780441172719-L.jpg",
+    "genre": "Science Fiction",
+    "pages": 412,
+    "publishedDate": "1965-08-01",
+    "status": "read",
+    "dateAdded": "2023-10-15T14:30:00Z"
+  },
+  {
+    "id": "9780385533225",
+    "title": "The Night Circus",
+    "author": "Erin Morgenstern",
+    "coverImage": "https://covers.openlibrary.org/b/isbn/9780385533225-L.jpg",
+    "genre": "Fantasy",
+    "pages": 387,
+    "publishedDate": "2011-09-13",
+    "status": "reading",
+    "dateAdded": "2024-01-10T09:15:00Z"
+  },
+  {
+    "id": "9780735211292",
+    "title": "Atomic Habits",
+    "author": "James Clear",
+    "coverImage": "https://covers.openlibrary.org/b/isbn/9780735211292-L.jpg",
+    "genre": "Self-Help",
+    "pages": 320,
+    "publishedDate": "2018-10-16",
+    "status": "reading",
+    "dateAdded": "2024-02-01T11:20:00Z"
+  },
+  {
+    "id": "9780374104092",
+    "title": "Annihilation",
+    "author": "Jeff VanderMeer",
+    "coverImage": "https://covers.openlibrary.org/b/isbn/9780374104092-L.jpg",
+    "genre": "Science Fiction",
+    "pages": 195,
+    "publishedDate": "2014-02-04",
+    "status": "tbr",
+    "dateAdded": "2024-02-15T18:45:00Z"
+  },
+  {
+    "id": "9780307277671",
+    "title": "The shadow of the wind",
+    "author": "Carlos Ruiz Zafón",
+    "coverImage": "https://covers.openlibrary.org/b/isbn/9780307277671-L.jpg",
+    "genre": "Historical Fiction",
+    "pages": 487,
+    "publishedDate": "2001-01-01",
+    "status": "default",
+    "dateAdded": "2024-02-20T10:05:00Z"
+  }
+]
