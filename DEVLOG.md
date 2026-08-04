@@ -277,6 +277,149 @@ No env files needed. No external credentials required to run the app.
 
 ---
 
+### 2026-08-04 — Phase 4: Camera & Bulk Scanning (branch: phase-4)
+
+**What happened:**
+- Created `phase-4` branch from `main`.
+- Installed `expo-camera`, added plugin to `app.json` (handles Android camera permission declaration automatically).
+- Created `app/scan.tsx` — full-screen camera scanner with:
+  - Live `CameraView` watching for EAN-13, EAN-8, UPC-A, UPC-E barcodes
+  - Scan frame overlay to guide the user
+  - Open Library lookup fires automatically on scan
+  - Bottom-sheet preview card for each result (cover, title, author, genre/pages)
+  - **Single mode** (default): confirm one book → add to library → back
+  - **Bulk mode** (toggled via "Bulk" button in header): add to queue → resume scanning → "Confirm All" adds everything at once
+  - Duplicate detection against both the existing library and the current bulk queue
+  - not-found and network-error states with "Scan another" recovery
+- Updated `app/add.tsx`: added "Scan Barcode" button below the manual ISBN input that pushes to the scan screen.
+- Registered `app/scan.tsx` in `app/_layout.tsx` with a dark header (black bg, white text) to blend with the camera UI.
+
+**Design Decisions:**
+
+*Why a separate `app/scan.tsx` instead of embedding camera in `app/add.tsx`?*
+The camera UI is fundamentally different from the manual-entry UI — full screen, dark background, no keyboard, different header. Putting them in the same file would mean one component managing two completely different visual contexts via a mode flag. A separate screen keeps each concern isolated and makes the navigation model clear: add.tsx chooses the entry method, scan.tsx owns the camera experience.
+
+*Why a `isProcessing` ref instead of state for preventing duplicate scans?*
+State updates are asynchronous in React. If a barcode fires twice before the re-render sets `phase` to `'fetching'`, both events would trigger API calls. A ref updates synchronously and is checked before any async work starts, making it a reliable guard without adding a render cycle.
+
+*Why bulk mode as a toggle rather than a separate screen/flow?*
+The physical action of bulk scanning (point → scan → queue → repeat) happens in a tight loop. Breaking it across multiple screens would add navigation overhead between each scan. Keeping it as a mode on the same screen lets you stay in the camera view the entire time, with the "Confirm All" bar appearing at the bottom as the queue grows.
+
+*Why EAN-13, EAN-8, UPC-A, UPC-E and not all barcode types?*
+`expo-camera` scans faster when you narrow the barcode type list — it only runs the decoders for specified formats. Books use EAN-13 (ISBN-13) almost universally; EAN-8 and UPC variants cover older and some US-market books. Including QR, Data Matrix, etc. would slow detection for no benefit.
+
+*Why a dark header for the scan screen?*
+The camera view is black. A light-coloured header would create a jarring contrast at the top of the screen. A dark header (`#000` bg, white text) makes the scanner feel like a single unified surface.
+
+**Architecture state after this session:**
+```
+Phase 4 COMPLETE.
+
+app/
+  scan.tsx            — camera scanner: single + bulk modes, bottom-sheet previews
+  add.tsx             — now has 'Scan Barcode' button → /scan
+
+Entry flow:
+  Library '+' → /add (modal) → type ISBN  OR  tap 'Scan Barcode' → /scan (full-screen)
+
+Requires physical Android device for camera — does not work in web or emulator.
+
+Next: Phase 5 — SQLite persistence (status changes and added books survive app restart)
+```
+
+---
+
+### 2026-08-04 — Delete book + inline genre/pages editing (branch: phase-4)
+
+**What happened:**
+- Added `deleteBook(id)` and `updateBook(id, updates)` actions to `src/store/bookStore.ts`.
+- Updated `app/book/[id].tsx`:
+  - Trash icon in the header triggers an `Alert.alert` confirmation, then calls `deleteBook` and navigates back.
+  - Genre and Pages metadata rows now show a small pencil icon and are tappable — tapping switches the row to an inline `TextInput` with an amber underline. Saves on keyboard return or blur. Empty genre or zero pages reverts to the previous value.
+  - Published and Added rows remain read-only (those values don't change after the book is added).
+
+**Design Decisions:**
+
+*Why inline editing rather than an edit mode for the whole screen?*
+Only two fields need to be editable (genre and pages). Putting the whole screen into an "edit mode" would add a toggle button and require the user to explicitly enter/exit editing for two fields. Tapping directly on the field is fewer taps and makes it obvious which fields are editable (the pencil icon signals it) vs. read-only.
+
+*Why save on blur rather than requiring an explicit save button?*
+An explicit "Save" button next to each field clutters the layout. Saving on blur (when the user taps away or presses Done on the keyboard) is standard mobile behaviour for inline text fields. If the user types nothing or clears the field, the value reverts — so there's no risk of accidentally blanking a field.
+
+*Why a red trash icon in the header rather than a "Remove" button at the bottom?*
+The header is always visible while scrolling, so the action is always reachable. Placing it in the header also follows the established mobile pattern (iOS Mail, iOS Contacts, etc.) that makes destructive actions available via a header icon behind a confirmation. A bottom button would require scrolling to reach and could be accidentally tapped.
+
+*Why Alert.alert for the delete confirmation rather than a custom modal?*
+`Alert.alert` uses the native OS dialog, which is instantly recognisable to the user as a destructive confirmation and requires no custom UI work. A custom modal would be more visually consistent but adds complexity for no functional gain.
+
+**Architecture state after this session:**
+```
+Store now has 4 actions:
+  addBook()       — Phase 3
+  deleteBook()    — NEW: removes by id
+  updateStatus()  — Phase 2
+  updateBook()    — NEW: updates genre and/or pages by id
+
+Book detail screen has 3 interactive zones:
+  Header trash icon  → delete with confirmation
+  Genre / Pages rows → inline edit (tap to edit, blur to save)
+  Status pills       → tap to change status
+```
+
+---
+
+### 2026-08-04 — Google Books fallback + manual book entry (branch: phase-4)
+
+**What happened:**
+- Identified that new-release ISBNs (e.g. 9781534332560) sometimes aren't in Open Library — the print run is too recent for Open Library's metadata to have caught up. The same title may exist in Google Books under a different edition ISBN.
+- Implemented a three-tier lookup: Open Library first → Google Books silent fallback → manual entry form.
+- Created `src/services/googleBooks.ts` — fetches `https://www.googleapis.com/books/v1/volumes?q=isbn:{isbn}`, returns `null` silently if no API key is configured (no crash, no error shown to user), throws on network failure.
+- Created `src/services/bookLookup.ts` — orchestration layer: calls Open Library, catches network errors, falls back to Google Books, returns `null` only if both miss.
+- Created `.env.example` (committed to repo) and `.env.local` (gitignored) for the `EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY` variable. The app works without a key — Google Books simply isn't queried.
+- Created `app/manual-entry.tsx` — a modal form with ISBN (pre-filled from route param), Title (required), Author (required), Genre, Pages, and Published Year fields. ISBN falls back to a `manual-{timestamp}` ID if left blank (for books without barcodes). Duplicate check prevents adding the same ISBN twice.
+- Updated `app/add.tsx` and `app/scan.tsx` to use `lookupByISBN` from `bookLookup.ts` instead of calling `openLibrary.ts` directly.
+- Added "Add Manually" CTA in the `not-found` state of both screens — passes the scanned/typed ISBN as a route param so the form is pre-filled.
+- Registered `manual-entry` screen in `app/_layout.tsx` as a modal.
+
+**Design Decisions:**
+
+*Why a separate `bookLookup.ts` orchestration module rather than putting the fallback logic inside each screen?*
+`add.tsx` and `scan.tsx` both need the same fallback behaviour. Centralizing it in `bookLookup.ts` means the lookup chain is defined once and both callers stay simple. If we add a third data source later (e.g. ISBNdb), there's one file to update.
+
+*Why does Google Books return `null` silently when no API key is configured rather than showing an error?*
+For users who haven't set up a key, the Google Books step should be invisible — it's a best-effort enhancement, not a required feature. Showing an error or a "configure API key" message would confuse users who just want to add books. The fallback chain is: Open Library → (GB if key exists) → manual entry. Manual entry is always available as a last resort.
+
+*Why use `EXPO_PUBLIC_` prefix for the API key?*
+Expo's build system only bundles environment variables with this prefix into the client-side JavaScript bundle. Without it, `process.env.EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY` would be `undefined` at runtime in the app — the prefix is required, not optional, for Expo managed workflow.
+
+*Why is manual entry a modal rather than a pushed screen?*
+It sits at the end of the Add flow (which is already a modal) or the Scan flow. Using `router.dismissAll()` after a successful add closes the entire modal stack cleanly, taking the user back to the Library without needing to pop multiple screens. A pushed screen would require navigating back through the add/scan screen before returning to the tab.
+
+*Why require only Title and Author for manual entry, not ISBN?*
+ISBN is optional in manual entry because the user is specifically in this flow because the ISBN lookup failed — forcing them to enter it again adds friction. For books without a barcode at all (hand-written journals, uncatalogued items), there's no ISBN to enter. Genre, Pages, and Year are optional because Open Library often leaves them blank anyway and the user can always fill them in later via the inline edit on the detail screen.
+
+**Architecture state after this session:**
+```
+src/
+  services/
+    openLibrary.ts    — primary lookup (unchanged)
+    googleBooks.ts    — NEW: secondary fallback, requires EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY
+    bookLookup.ts     — NEW: orchestration: OL → GB → null
+
+app/
+  _layout.tsx         — manual-entry registered as modal
+  add.tsx             — uses lookupByISBN; not-found state has 'Add Manually' button
+  scan.tsx            — uses lookupByISBN; not-found state has 'Add Manually' button
+  manual-entry.tsx    — NEW: manual form, ISBN pre-filled from route param
+
+.env.example          — committed template (empty key)
+.env.local            — gitignored (user fills in API key)
+
+Lookup chain: Open Library → Google Books (if key set) → manual entry form
+```
+
+---
+
 <!-- TEMPLATE — copy this block to start a new session entry
 
 ### YYYY-MM-DD — Session Title
