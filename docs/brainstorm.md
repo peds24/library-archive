@@ -13,7 +13,7 @@
    - sort books by filters:
      - genre
      - alphabetical
-     - status (reading, read, nextup, default (in shelf))
+     - status (reading, read, tbr, shelved)
 3. book view
    - cover
    - author
@@ -35,7 +35,7 @@
 - pages
 - published date
 ### from user
-- status (default(in shelf), reading, tbr, read)
+- status (shelved, reading, tbr, read)
 - date added to shelf
 
 ## first protoype
