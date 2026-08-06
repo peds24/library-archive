@@ -8,7 +8,10 @@ interface BookStore {
   addBook: (book: Book) => void;
   deleteBook: (id: string) => void;
   updateStatus: (id: string, status: BookStatus) => void;
-  updateBook: (id: string, updates: Partial<Pick<Book, 'genre' | 'pages'>>) => void;
+  updateBook: (
+    id: string,
+    updates: Partial<Pick<Book, 'title' | 'author' | 'coverImage' | 'genre' | 'pages' | 'publishedDate'>>
+  ) => void;
 }
 
 export const useBookStore = create<BookStore>()((set) => ({

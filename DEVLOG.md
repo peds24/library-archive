@@ -475,6 +475,111 @@ No migration system yet — schema changes require clearing app data.
 
 ---
 
+### 2026-08-05 — Full-field editing on the book detail screen (branch: main)
+
+**What happened:**
+- Extended inline editing on `app/book/[id].tsx` to cover every editable field, not just genre and pages: Title and Author are now tap-to-edit (styled to match their original large/muted text treatment), Published now edits the full `publishedDate` string instead of just a read-only truncated year, and a new Cover URL row was added.
+- Widened `updateBook`'s type in `src/store/bookStore.ts` from `Partial<Pick<Book, 'genre' | 'pages'>>` to also include `title`, `author`, `coverImage`, `publishedDate`.
+- Widened `dbUpdateBook()` in `src/services/database.ts` to match, with one conditional `UPDATE` statement per new field.
+- Left `id` and `dateAdded` read-only: `id` is the SQLite primary key (the ISBN) and changing it would mean deleting and re-inserting the row rather than updating it; `dateAdded` is an audit timestamp set once when the book enters the library, not a book attribute the user would want to hand-edit.
+
+**Design Decisions:**
+
+*Why editable Title/Author as their own components instead of reusing the label+value `EditableRow`?*
+`EditableRow` renders a small label next to a value, which fits the metadata block's row layout. Title and author sit above that block as large, unlabeled display text (2xl bold title, muted subtitle). Reusing `EditableRow` would have forced a label onto text that currently has none, changing the visual hierarchy. Instead, `EditableTitleRow` and `EditableAuthorRow` mirror the same tap-to-edit/save-on-blur mechanics but preserve the original font size, weight, and color of each element.
+
+*Why switch Published from a truncated year display to editing the full date string?*
+The prior `Row` showed `book.publishedDate.slice(0, 4)` — a display-only transform. Making it editable while still showing just the year would mean every save silently discarded the month/day the record already had (`"1965-08-01"` → user edits "1965" → write back `"1965"`, losing `-08-01` permanently). Editing the full stored string avoids that data loss; the trade-off is the row is visually busier (a full date instead of a bare year), which is acceptable for a low-traffic field.
+
+*Why not make `id` or `dateAdded` editable, given the request was "all fields"?*
+Both are structural rather than descriptive metadata. `id` is the SQLite primary key — the `dbUpdateBook` writes are all `UPDATE ... WHERE id = ?`, so editing `id` itself would need delete+reinsert semantics, and it doubles as the ISBN feeding the Open Library cover URL, so an arbitrary edit would desync the two. `dateAdded` is set once at insert time and used for the Library screen's "Recent" sort; making it user-editable doesn't correspond to anything the user would naturally want to change by hand.
+
+**Architecture state after this session:**
+```
+Book detail screen editable fields: title, author, genre, pages, publishedDate, coverImage, status
+Read-only fields: id (ISBN, primary key), dateAdded (audit timestamp)
+
+src/store/bookStore.ts
+  updateBook(id, updates: Partial<Pick<Book, 'title'|'author'|'coverImage'|'genre'|'pages'|'publishedDate'>>)
+
+src/services/database.ts
+  dbUpdateBook() — one conditional UPDATE per editable field, all write-through to SQLite immediately
+```
+
+---
+
+### 2026-08-05 — Fix `expo start --web` crashes (branch: main)
+
+**What happened:**
+- Diagnosed and fixed three separate, stacked errors that prevented `npx expo start --web` from loading at all (previously only tested on the Android device):
+  1. **Metro couldn't bundle `wa-sqlite.wasm`** — `expo-sqlite`'s web backend statically imports a `.wasm` binary that Metro doesn't know how to handle by default. Fixed in `metro.config.js` by pushing `'wasm'` onto `config.resolver.assetExts`.
+  2. **`[Error: Sync operation timeout]` / `SharedArrayBuffer is not defined`** — `expo-sqlite`'s web backend runs SQLite in a Worker and needs `SharedArrayBuffer`, which browsers only expose when the page is served with `Cross-Origin-Opener-Policy`/`Cross-Origin-Embedder-Policy` headers on the *document* response. Tried adding those via `config.server.enhanceMiddleware` in `metro.config.js` — headers showed up correctly on JS bundle requests but never on the `/` document response itself (traced into `@expo/cli`'s dev-server internals: for `web.output: "single"`, the HTML-serving `HistoryFallbackMiddleware` is wired up in a way that doesn't reliably inherit those headers in this Expo CLI version). Rather than keep patching Metro/Expo CLI internals — fragile, version-specific, and web was never a target platform for this app (see `CLAUDE.md`: Android/Pixel only) — `src/services/database.ts` now checks `Platform.OS === 'web'` and skips real SQLite entirely on web, falling back to seeding from `mock-books.json` into memory (same as pre-Phase-5 behavior). All `db*` write functions become no-ops on web. Android keeps full SQLite persistence, unchanged.
+  3. **`Cannot manually set color scheme, as dark mode is type 'media'`** — unrelated NativeWind/`react-native-css-interop` web bug: its internal `MutationObserver` bootstrap tries to sync the color scheme on load and throws under Tailwind's default `darkMode: 'media'` strategy. Fixed by setting `darkMode: 'class'` in `tailwind.config.js` — safe here since the app has zero `dark:` variant usage anywhere (single fixed light theme).
+- Also changed `app.json`'s `web.output` from `"static"` to `"single"` — `"static"` server-renders each route in Node before sending it to the browser, and the root layout's `initDatabase()` call was executing during that Node-side SSR pass too (this was the original source of the "Sync operation timeout" error, before the web fallback above made it moot). `"single"` is a pure client-side SPA build with no SSR, which fits a device-local app with no API routes.
+- Verified via `claude-in-chrome`: loaded `localhost:8081` in an actual browser tab, confirmed zero console errors, and exercised the book-editing feature from the previous session (edited a title inline, saw it save and reflect immediately) to confirm the UI works end-to-end on web.
+
+**Design Decisions:**
+
+*Why fall back to in-memory-only on web instead of continuing to chase the COOP/COEP header fix?*
+The header issue lives inside `@expo/cli`'s dev-server middleware ordering, not in this app's config — reproducing it required tracing through `node_modules/expo/node_modules/@expo/cli/build/src/start/server/metro/*.js`, and any fix would be pinned to this exact Expo CLI version and could silently break on the next `npx expo install` upgrade. Web was never a target platform (`CLAUDE.md` scopes this app to Android/Pixel); it's used here purely so the developer can preview UI changes without plugging in a physical device. An in-memory fallback gets that preview capability working reliably with a five-line platform check, versus an unbounded amount of fragile internals-patching for a persistence guarantee nothing on web actually needs.
+
+*Why `web.output: "single"` instead of `"static"`?*
+`"static"` server-renders every route in Node before sending HTML to the browser (for SEO/deep-linking of a real website). This app has no API routes, no need for SEO, and isn't deployed as a website — it's a local device-only tool. Server-rendering was actively harmful here: it ran `initDatabase()` in a Node context where the web SQLite backend can't function, which is what originally surfaced as "Sync operation timeout" before the Platform-guard fix made it a non-issue either way. `"single"` skips SSR entirely and matches what the app actually is: a client-only SPA.
+
+**Architecture state after this session:**
+```
+src/services/database.ts
+  db = Platform.OS === 'web' ? null : SQLite.openDatabaseSync(...)
+  initDatabase() and every db*() write function short-circuit when db is null
+
+Web:      no persistence — always reseeds from mock-books.json in memory, UI-preview only
+Android:  unchanged — full SQLite persistence via expo-sqlite
+
+metro.config.js   — resolver.assetExts includes 'wasm' (still required: expo-sqlite's
+                     web module is bundled regardless of the runtime Platform check)
+tailwind.config.js — darkMode: 'class' (app has no dark: usage; this only stops
+                      NativeWind's web MutationObserver from crashing on load)
+app.json            — web.output: 'single' (was 'static')
+
+`npx expo start --web` now loads cleanly with zero console errors.
+```
+
+---
+
+### 2026-08-05 — UI exploration workspace + blue accent (branch: design)
+
+**What happened:**
+- Created a `design` branch and an `inspo/` workspace (`inspo/references/` for dropped-in inspiration, `inspo/mockups/` for generated comps) so UI exploration doesn't touch `app/`/`src/` until a direction is chosen.
+- Built two static HTML mockups covering all four screens (Reading, Library, Book Detail, Add Book): a custom-indigo "minimal & modern" pass, then a second pass after reviewing three inspiration screenshots (Perplexity's typographic restraint, Library of Babel's hexagonal-room concept, a Material 3 marketing page) — this one built on real M3 components (filled text field, filter chips, segmented buttons, extended FAB, pill-indicator nav bar) instead of an invented system, redrew the hexagon as a crisp vector motif (page background + book cover shape only, deliberately not reused anywhere else), and committed to an OLED-black high-contrast default theme.
+- Added a live in-mockup accent switcher (orange/purple/green/blue) so all four could be compared side by side without four separate files; each accent carries its own light/dark tonal pair and the switcher flags known collisions live (e.g. blue and green both sit close to existing status-chip hues).
+- User picked blue. Applied it to the real app: `tailwind.config.js`'s previously-unused `accent` token changed from `#b45309` (amber) to `#0061a4`, and every component that had the old amber hardcoded directly (buttons in `add.tsx`/`manual-entry.tsx`/`scan.tsx`, the `FilterBar` active pill, `+not-found.tsx`'s link, the root/tab header tints, the Book Detail edit-field underlines and pencil-icon tints) now references it — either via `bg-accent`/`text-accent` classes, or the matching raw hex where React Navigation/RN props require a literal color string (`headerTintColor`, `tabBarActiveTintColor`, `ActivityIndicator` color, `SymbolView` tintColor — none of these can consume a Tailwind class).
+- Left the **TBR status color** (`bg-amber-100`/`text-amber-700` in `BookCard.tsx`, `bg-amber-600` in the Book Detail status picker) untouched — it's semantic (book status), not brand, and happened to share amber with the old accent only coincidentally.
+- Pushed the `design` branch (workspace + mockups) to GitHub before starting the app edits.
+
+**Design Decisions:**
+
+*Why introduce a real `accent` token usage instead of just swapping every `amber-700` for a stock `blue-700`?*
+`tailwind.config.js` already defined an `accent` color, but nothing in the app actually referenced it — every component hardcoded `amber-700`/`amber-600` directly, so the token was dead. Wiring components to `bg-accent`/`text-accent` instead of a literal Tailwind blue makes future re-theming a one-line change in one file, and — more immediately — using a custom hex (`#0061a4`) instead of Tailwind's stock `blue-700` (`#1d4ed8`) keeps the new accent visually distinguishable from the existing "Reading" status chip, which already uses `blue-700`/`blue-100`.
+
+*Why blue at all, given it's the one accent option that overlaps an existing status hue?*
+Flagged explicitly in the mockup comparison (orange has zero hue collisions with any status color; blue and green both risk blurring "primary action" into "book status"). User chose blue anyway with that trade-off known — mitigated as much as reasonably possible by picking a cyan-leaning blue distinct from the more indigo-leaning status blue, not by avoiding the collision entirely.
+
+**Architecture state after this session:**
+```
+inspo/
+  references/   — dropped-in inspiration screenshots (Perplexity, Library of Babel, Material 3)
+  mockups/      — ui-direction-minimal-modern.html, ui-direction-material-crisp.html (accent switcher)
+
+App accent color: #0061a4 (was #b45309), defined once in tailwind.config.js as `accent`,
+duplicated as raw hex only where RN/React Navigation props can't take a Tailwind class
+(app/_layout.tsx, app/(tabs)/_layout.tsx, app/book/[id].tsx, app/scan.tsx).
+
+Status colors (reading/tbr/read/shelved) unchanged — still their own palette, independent
+of the brand accent.
+```
+
+---
+
 <!-- TEMPLATE — copy this block to start a new session entry
 
 ### YYYY-MM-DD — Session Title

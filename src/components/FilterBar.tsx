@@ -25,7 +25,7 @@ export default function FilterBar<T extends string>({ filters, active, onSelect 
           <Pressable
             key={f.value}
             onPress={() => onSelect(f.value)}
-            className={`px-3 py-1.5 rounded-full ${isActive ? 'bg-amber-700' : 'bg-stone-100'}`}
+            className={`px-3 py-1.5 rounded-full ${isActive ? 'bg-accent' : 'bg-stone-100'}`}
           >
             <Text className={`text-sm font-medium ${isActive ? 'text-white' : 'text-stone-600'}`}>
               {f.label}

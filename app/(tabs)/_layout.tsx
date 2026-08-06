@@ -8,7 +8,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#b45309',
+        tabBarActiveTintColor: '#0061a4',
         tabBarInactiveTintColor: '#a8a29e',
         tabBarStyle: { backgroundColor: '#fafaf9', borderTopColor: '#e7e5e4' },
         headerStyle: { backgroundColor: '#fafaf9' },
@@ -48,7 +48,7 @@ export default function TabLayout() {
             >
               <SymbolView
                 name={{ ios: 'plus', android: 'add', web: 'add' }}
-                tintColor="#b45309"
+                tintColor="#0061a4"
                 size={26}
               />
             </Pressable>

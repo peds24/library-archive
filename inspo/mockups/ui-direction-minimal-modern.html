@@ -1,0 +1,657 @@
+<title>Library — Minimal &amp; Modern</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --bg: #f2f2ef;
+    --studio: #e7e7e2;
+    --surface: #ffffff;
+    --surface-2: #eeeeea;
+    --ink: #17181c;
+    --ink-muted: #6e7077;
+    --ink-faint: #a6a8ad;
+    --border: #e1e1dc;
+    --accent: #5245e5;
+    --accent-ink: #ffffff;
+    --status-reading-bg: #dce9ff;
+    --status-reading-fg: #1d4ed8;
+    --status-tbr-bg: #fcebd1;
+    --status-tbr-fg: #b45309;
+    --status-read-bg: #dcfce7;
+    --status-read-fg: #15803d;
+    --status-shelved-bg: #f0f0ee;
+    --status-shelved-fg: #78716c;
+    --shadow: 0 30px 60px -20px rgba(20, 20, 30, 0.35), 0 4px 12px rgba(20, 20, 30, 0.08);
+  }
+  :root[data-theme="dark"] {
+    --bg: #101115;
+    --studio: #0a0b0e;
+    --surface: #1a1b20;
+    --surface-2: #212228;
+    --ink: #f2f2f0;
+    --ink-muted: #9a9ca3;
+    --ink-faint: #5c5e66;
+    --border: #2a2b31;
+    --accent: #8b82ff;
+    --accent-ink: #12111f;
+    --status-reading-bg: rgba(59, 130, 246, 0.16);
+    --status-reading-fg: #93b4ff;
+    --status-tbr-bg: rgba(180, 83, 9, 0.2);
+    --status-tbr-fg: #f0b25e;
+    --status-read-bg: rgba(21, 128, 61, 0.18);
+    --status-read-fg: #6fda93;
+    --status-shelved-bg: rgba(255, 255, 255, 0.06);
+    --status-shelved-fg: #a3a4ab;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #101115;
+      --studio: #0a0b0e;
+      --surface: #1a1b20;
+      --surface-2: #212228;
+      --ink: #f2f2f0;
+      --ink-muted: #9a9ca3;
+      --ink-faint: #5c5e66;
+      --border: #2a2b31;
+      --accent: #8b82ff;
+      --accent-ink: #12111f;
+      --status-reading-bg: rgba(59, 130, 246, 0.16);
+      --status-reading-fg: #93b4ff;
+      --status-tbr-bg: rgba(180, 83, 9, 0.2);
+      --status-tbr-fg: #f0b25e;
+      --status-read-bg: rgba(21, 128, 61, 0.18);
+      --status-read-fg: #6fda93;
+      --status-shelved-bg: rgba(255, 255, 255, 0.06);
+      --status-shelved-fg: #a3a4ab;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Roboto, "Segoe UI", system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 3.5rem 1.75rem 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2.75rem;
+  }
+
+  /* ---- Header ---- */
+  .eyebrow {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  h1 {
+    margin: 0.4rem 0 0;
+    font-size: clamp(1.9rem, 3.2vw, 2.4rem);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  .lede {
+    max-width: 46rem;
+    margin: 0.6rem 0 0;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--ink-muted);
+  }
+
+  /* ---- Style key ---- */
+  .key {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .key-card {
+    background: var(--surface);
+    padding: 1.1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .key-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .swatch-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .swatch {
+    width: 2.1rem; height: 2.1rem; border-radius: 8px;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .swatch-labeled {
+    display: flex; align-items: center; gap: 0.55rem;
+    font-size: 0.8rem; color: var(--ink-muted);
+  }
+  .swatch-labeled .swatch { width: 1.4rem; height: 1.4rem; border-radius: 6px; }
+  .type-sample-display { font-size: 1.15rem; font-weight: 600; letter-spacing: -0.01em; }
+  .type-sample-body { font-size: 0.9rem; color: var(--ink-muted); }
+  .type-sample-mono {
+    font-family: "Roboto Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.8rem;
+    color: var(--ink-muted);
+    letter-spacing: 0.02em;
+  }
+
+  /* ---- Phone row ---- */
+  .phones {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(240px, 1fr));
+    gap: 1.75rem;
+  }
+  @media (max-width: 1050px) {
+    .phones { grid-template-columns: repeat(2, minmax(240px, 1fr)); }
+  }
+  @media (max-width: 600px) {
+    .phones { grid-template-columns: 1fr; }
+  }
+  .phone-block { display: flex; flex-direction: column; gap: 0.9rem; }
+  .phone-caption { padding: 0 0.25rem; }
+  .phone-title { font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.005em; }
+  .phone-note { font-size: 0.8125rem; color: var(--ink-muted); line-height: 1.5; margin-top: 0.2rem; }
+
+  .phone {
+    background: var(--studio);
+    border-radius: 32px;
+    padding: 0.85rem;
+    box-shadow: var(--shadow);
+  }
+  .screen {
+    background: var(--surface);
+    border-radius: 24px;
+    overflow: hidden;
+    height: 620px;
+    display: flex;
+    flex-direction: column;
+    color: var(--ink);
+    position: relative;
+  }
+
+  .statusbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.7rem 1.1rem 0.3rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+  .statusbar-icons { display: flex; gap: 0.3rem; align-items: center; color: var(--ink-muted); }
+
+  .screen-header {
+    padding: 0.4rem 1.1rem 0.9rem;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .screen-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+  .screen-header .count {
+    font-family: "Roboto Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.8125rem;
+    color: var(--ink-faint);
+  }
+  .icon-btn {
+    width: 2rem; height: 2rem;
+    border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent);
+    font-size: 1.25rem;
+    font-weight: 400;
+    line-height: 1;
+  }
+  .back-row {
+    padding: 0.5rem 1rem 0;
+    display: flex; align-items: center; gap: 0.4rem;
+    color: var(--ink-muted);
+    font-size: 0.875rem;
+    flex-shrink: 0;
+  }
+
+  .scroll { overflow: hidden; flex: 1; display: flex; flex-direction: column; }
+
+  /* ---- Book cover placeholder (generated, no external images) ---- */
+  .cover {
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 0.5rem;
+    flex-shrink: 0;
+    color: rgba(255,255,255,0.92);
+  }
+  .cover-mark { font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; }
+  .cover-title { font-size: 0.6875rem; font-weight: 600; line-height: 1.25; }
+
+  /* ---- Large card (Reading screen) ---- */
+  .cards { padding: 0 1.1rem; display: flex; flex-direction: column; gap: 0.7rem; }
+  .card-lg {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 0.85rem;
+    display: flex;
+    gap: 0.9rem;
+  }
+  .card-lg .cover { width: 4.4rem; height: 6.4rem; }
+  .card-body { display: flex; flex-direction: column; justify-content: center; gap: 0.15rem; min-width: 0; }
+  .card-title { font-size: 0.95rem; font-weight: 600; letter-spacing: -0.005em; }
+  .card-author { font-size: 0.8125rem; color: var(--ink-muted); }
+  .card-meta {
+    font-size: 0.75rem; color: var(--ink-faint);
+    font-family: "Roboto Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    margin-top: 0.25rem;
+  }
+
+  /* ---- Filter bar ---- */
+  .filter-bar {
+    display: flex; gap: 0.45rem;
+    padding: 0 1.1rem 0.9rem;
+    overflow: hidden;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.9rem;
+  }
+  .pill {
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    background: var(--surface-2);
+    color: var(--ink-muted);
+    white-space: nowrap;
+  }
+  .pill.active { background: var(--accent); color: var(--accent-ink); }
+
+  /* ---- Compact list (Library screen) ---- */
+  .list { padding: 0.8rem 1.1rem; display: flex; flex-direction: column; gap: 0.55rem; overflow: hidden; }
+  .row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+  .row .cover { width: 2.6rem; height: 3.6rem; border-radius: 6px; }
+  .row .cover .cover-mark, .row .cover .cover-title { display: none; }
+  .row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.1rem; }
+  .row-title { font-size: 0.8438rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row-sub { font-size: 0.75rem; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .status-chip {
+    padding: 0.28rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .status-reading { background: var(--status-reading-bg); color: var(--status-reading-fg); }
+  .status-tbr { background: var(--status-tbr-bg); color: var(--status-tbr-fg); }
+  .status-read { background: var(--status-read-bg); color: var(--status-read-fg); }
+  .status-shelved { background: var(--status-shelved-bg); color: var(--status-shelved-fg); }
+
+  /* ---- Book detail ---- */
+  .detail-hero {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 1.2rem 1.5rem 1.4rem;
+    gap: 0.85rem;
+    flex-shrink: 0;
+  }
+  .detail-hero .cover { width: 7.5rem; height: 10.8rem; border-radius: 10px; }
+  .detail-title { font-size: 1.3rem; font-weight: 600; text-align: center; letter-spacing: -0.01em; }
+  .detail-author { font-size: 0.9rem; color: var(--ink-muted); }
+  .detail-meta {
+    font-size: 0.75rem; color: var(--ink-faint);
+    font-family: "Roboto Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+  .segmented {
+    display: flex; margin: 0 1.1rem;
+    background: var(--surface-2);
+    border-radius: 11px;
+    padding: 0.25rem;
+    gap: 0.2rem;
+  }
+  .segment {
+    flex: 1; text-align: center;
+    padding: 0.5rem 0.2rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--ink-muted);
+  }
+  .segment.active { background: var(--surface); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .detail-footer {
+    margin-top: auto;
+    padding: 1rem 1.5rem 1.3rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    font-family: "Roboto Mono", ui-monospace, monospace;
+  }
+
+  /* ---- Add book ---- */
+  .form { padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.8rem; }
+  .field {
+    background: var(--surface-2);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    font-size: 0.875rem;
+    color: var(--ink-faint);
+  }
+  .btn {
+    padding: 0.85rem;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  .btn-primary { background: var(--accent); color: var(--accent-ink); }
+  .btn-outline { border: 1.5px solid var(--border); color: var(--ink); }
+  .divider { display: flex; align-items: center; gap: 0.7rem; margin: 0.2rem 0; }
+  .divider .line { flex: 1; height: 1px; background: var(--border); }
+  .divider span { font-size: 0.6875rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.08em; }
+  .link-muted { text-align: center; font-size: 0.8125rem; color: var(--ink-faint); font-weight: 500; margin-top: 0.2rem; }
+
+  /* ---- Tab bar ---- */
+  .tabbar {
+    margin-top: auto;
+    display: flex;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .tab {
+    flex: 1; padding: 0.65rem 0 0.9rem;
+    display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
+    font-size: 0.6875rem; font-weight: 500;
+    color: var(--ink-faint);
+  }
+  .tab.active { color: var(--accent); }
+  .tab-dot { width: 1.35rem; height: 1.35rem; border-radius: 6px; background: currentColor; opacity: 0.16; }
+  .tab.active .tab-dot { opacity: 1; background: var(--accent); }
+
+  footer.notes {
+    border-top: 1px solid var(--border);
+    padding-top: 1.75rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+  }
+  footer.notes h3 {
+    margin: 0 0 0.4rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+  footer.notes p {
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    color: var(--ink-muted);
+  }
+</style>
+
+<div class="page">
+
+  <div>
+    <div class="eyebrow">Library — UI Exploration</div>
+    <h1>Direction A: Minimal &amp; Modern</h1>
+    <p class="lede">
+      Same four screens as the current build, restyled around one accent instead of the
+      status-color palette doing double duty. Tighter radii, a mono face for anything
+      numeric (pages, dates, counts), and a single indigo used only for the primary
+      action per screen — everything else stays quiet so status chips keep meaning
+      something.
+    </p>
+  </div>
+
+  <div class="key">
+    <div class="key-card">
+      <div class="key-label">Color</div>
+      <div class="swatch-row">
+        <div class="swatch" style="background:var(--bg)"></div>
+        <div class="swatch" style="background:var(--surface-2)"></div>
+        <div class="swatch" style="background:var(--ink)"></div>
+        <div class="swatch" style="background:var(--accent)"></div>
+      </div>
+      <div class="swatch-labeled"><div class="swatch" style="background:var(--accent)"></div>accent · indigo, primary actions only</div>
+    </div>
+    <div class="key-card">
+      <div class="key-label">Status (unchanged intent)</div>
+      <div class="swatch-labeled"><div class="swatch" style="background:var(--status-reading-fg)"></div>reading</div>
+      <div class="swatch-labeled"><div class="swatch" style="background:var(--status-tbr-fg)"></div>tbr</div>
+      <div class="swatch-labeled"><div class="swatch" style="background:var(--status-read-fg)"></div>read</div>
+      <div class="swatch-labeled"><div class="swatch" style="background:var(--status-shelved-fg)"></div>shelved</div>
+    </div>
+    <div class="key-card">
+      <div class="key-label">Type</div>
+      <div class="type-sample-display">Roboto 600 — screen titles</div>
+      <div class="type-sample-body">Roboto 400 — body &amp; author lines</div>
+      <div class="type-sample-mono">Roboto Mono — 412 pages · 1965 · Oct 15 2023</div>
+    </div>
+  </div>
+
+  <div class="phones">
+
+    <!-- SCREEN 1: Currently Reading -->
+    <div class="phone-block">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="statusbar-icons">●●●</span></div>
+          <div class="screen-header">
+            <h2>Reading</h2>
+            <span class="count">2</span>
+          </div>
+          <div class="scroll">
+            <div class="cards">
+              <div class="card-lg">
+                <div class="cover" style="background:#4b3b73;">
+                  <div class="cover-mark">Fantasy</div>
+                  <div class="cover-title">The Night Circus</div>
+                </div>
+                <div class="card-body">
+                  <div class="card-title">The Night Circus</div>
+                  <div class="card-author">Erin Morgenstern</div>
+                  <div class="card-meta">387 pp</div>
+                </div>
+              </div>
+              <div class="card-lg">
+                <div class="cover" style="background:#8a6d2e;">
+                  <div class="cover-mark">Self-Help</div>
+                  <div class="cover-title">Atomic Habits</div>
+                </div>
+                <div class="card-body">
+                  <div class="card-title">Atomic Habits</div>
+                  <div class="card-author">James Clear</div>
+                  <div class="card-meta">320 pp</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="tabbar">
+            <div class="tab active"><div class="tab-dot"></div>Reading</div>
+            <div class="tab"><div class="tab-dot"></div>Library</div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-caption">
+        <div class="phone-title">Currently Reading</div>
+        <div class="phone-note">Count replaces a redundant "My Books" label — the number is the information.</div>
+      </div>
+    </div>
+
+    <!-- SCREEN 2: Library -->
+    <div class="phone-block">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="statusbar-icons">●●●</span></div>
+          <div class="screen-header">
+            <h2>Library</h2>
+            <div class="icon-btn">＋</div>
+          </div>
+          <div class="filter-bar">
+            <div class="pill active">All</div>
+            <div class="pill">Reading</div>
+            <div class="pill">TBR</div>
+            <div class="pill">Read</div>
+            <div class="pill">Shelved</div>
+          </div>
+          <div class="scroll">
+            <div class="list">
+              <div class="row">
+                <div class="cover" style="background:#2e4a63;"></div>
+                <div class="row-body">
+                  <div class="row-title">Dune</div>
+                  <div class="row-sub">Frank Herbert · Science Fiction</div>
+                </div>
+                <div class="status-chip status-read">Read</div>
+              </div>
+              <div class="row">
+                <div class="cover" style="background:#4b3b73;"></div>
+                <div class="row-body">
+                  <div class="row-title">The Night Circus</div>
+                  <div class="row-sub">Erin Morgenstern · Fantasy</div>
+                </div>
+                <div class="status-chip status-reading">Reading</div>
+              </div>
+              <div class="row">
+                <div class="cover" style="background:#8a6d2e;"></div>
+                <div class="row-body">
+                  <div class="row-title">Atomic Habits</div>
+                  <div class="row-sub">James Clear · Self-Help</div>
+                </div>
+                <div class="status-chip status-reading">Reading</div>
+              </div>
+              <div class="row">
+                <div class="cover" style="background:#2f5747;"></div>
+                <div class="row-body">
+                  <div class="row-title">Annihilation</div>
+                  <div class="row-sub">Jeff VanderMeer · Sci-Fi</div>
+                </div>
+                <div class="status-chip status-tbr">TBR</div>
+              </div>
+              <div class="row">
+                <div class="cover" style="background:#6b4130;"></div>
+                <div class="row-body">
+                  <div class="row-title">The Shadow of the Wind</div>
+                  <div class="row-sub">Carlos Ruiz Zafón · Historical</div>
+                </div>
+                <div class="status-chip status-shelved">Shelved</div>
+              </div>
+            </div>
+          </div>
+          <div class="tabbar">
+            <div class="tab"><div class="tab-dot"></div>Reading</div>
+            <div class="tab active"><div class="tab-dot"></div>Library</div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-caption">
+        <div class="phone-title">Library</div>
+        <div class="phone-note">Filter pills reuse the accent only for the active state; rows drop borders in favor of a hairline background split.</div>
+      </div>
+    </div>
+
+    <!-- SCREEN 3: Book Detail -->
+    <div class="phone-block">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="statusbar-icons">●●●</span></div>
+          <div class="back-row">‹ Library</div>
+          <div class="scroll">
+            <div class="detail-hero">
+              <div class="cover" style="background:#2e4a63;">
+                <div class="cover-mark">Sci-Fi</div>
+                <div class="cover-title">Dune</div>
+              </div>
+              <div>
+                <div class="detail-title">Dune</div>
+                <div class="detail-author" style="text-align:center;margin-top:0.15rem;">Frank Herbert</div>
+              </div>
+              <div class="detail-meta">Science Fiction · 412 pp · 1965</div>
+            </div>
+            <div class="segmented">
+              <div class="segment">Shelved</div>
+              <div class="segment">TBR</div>
+              <div class="segment">Reading</div>
+              <div class="segment active">Read</div>
+            </div>
+            <div class="detail-footer">Added Oct 15 2023</div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-caption">
+        <div class="phone-title">Book Detail</div>
+        <div class="phone-note">Status editing moves from a tap-to-cycle chip to a segmented control — all four states visible and reachable in one tap.</div>
+      </div>
+    </div>
+
+    <!-- SCREEN 4: Add Book -->
+    <div class="phone-block">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="statusbar-icons">●●●</span></div>
+          <div class="back-row">‹ Add Book</div>
+          <div class="scroll">
+            <div class="form">
+              <div class="field">Enter ISBN (e.g. 9780441172719)</div>
+              <div class="btn btn-primary">Search</div>
+              <div class="divider"><div class="line"></div><span>or</span><div class="line"></div></div>
+              <div class="btn btn-outline">Scan Barcode</div>
+              <div class="link-muted">Add manually instead</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-caption">
+        <div class="phone-title">Add Book</div>
+        <div class="phone-note">Same ISBN → scan → manual fallback flow already built; only the surface styling changes.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="notes">
+    <div>
+      <h3>What changed vs. current build</h3>
+      <p>Accent moves off amber (currently doubling as both brand color and the TBR status chip) to a dedicated indigo, so status color always means status and nothing else. Card radius tightens from 16–24px to 10–14px for a less "cozy," more precise feel.</p>
+    </div>
+    <div>
+      <h3>Open question</h3>
+      <p>Covers here are generated placeholders (flat tint + title) since real Open Library covers arrive inconsistently sized. Worth deciding: keep real cover art as primary with this as the empty-state fallback, or commit to generated covers everywhere for visual consistency?</p>
+    </div>
+    <div>
+      <h3>Next</h3>
+      <p>Drop reference screenshots in <code>inspo/references/</code> and reply here with what to adjust — palette, density, or a completely different direction (B: cozy/literary, C: bold/playful) to mock up alongside this one.</p>
+    </div>
+  </footer>
+
+</div>

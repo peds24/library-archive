@@ -123,7 +123,7 @@ export default function ManualEntryScreen() {
           <Pressable
             onPress={handleAdd}
             disabled={!canAdd}
-            className={`py-3 rounded-xl items-center mt-2 ${canAdd ? 'bg-amber-700' : 'bg-stone-200'}`}
+            className={`py-3 rounded-xl items-center mt-2 ${canAdd ? 'bg-accent' : 'bg-stone-200'}`}
           >
             <Text className={`font-semibold text-base ${canAdd ? 'text-white' : 'text-stone-400'}`}>
               Add to Library
