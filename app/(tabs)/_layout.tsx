@@ -37,7 +37,7 @@ export default function TabLayout() {
         tabBarStyle: { backgroundColor: colors.surface.default, borderTopWidth: 0 },
         headerStyle: { backgroundColor: colors.surface.default },
         headerShadowVisible: false,
-        headerTitleStyle: { color: colors.ink.default, fontWeight: '600', fontSize: 18 },
+        headerTitleStyle: { color: colors.ink.default, fontWeight: '700', fontSize: 28 },
       }}
     >
       <Tabs.Screen
