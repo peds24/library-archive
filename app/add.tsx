@@ -8,11 +8,12 @@ import {
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   View,
 } from 'react-native';
+import M3TextField from '@/src/components/M3TextField';
 import { lookupByISBN } from '@/src/services/bookLookup';
 import { useBookStore } from '@/src/store/bookStore';
+import { colors } from '@/src/theme/colors';
 import { Book } from '@/src/types/book';
 
 type Phase = 'input' | 'loading' | 'preview' | 'not-found' | 'error';
@@ -72,15 +73,14 @@ export default function AddBookScreen() {
     <>
       <Stack.Screen options={{ title: 'Add Book' }} />
       <KeyboardAvoidingView
-        className="flex-1 bg-stone-50"
+        className="flex-1 bg-surface"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {/* ISBN input — always visible */}
-        <View className="px-5 pt-5 pb-4 gap-3 bg-white border-b border-stone-200">
-          <TextInput
-            className="bg-stone-100 rounded-xl px-4 py-3 text-stone-900 text-base"
-            placeholder="Enter ISBN (e.g. 9780441172719)"
-            placeholderTextColor="#a8a29e"
+        <View className="px-5 pt-5 pb-4 gap-3 border-b border-border">
+          <M3TextField
+            label="ISBN"
+            placeholder="e.g. 9780441172719"
             value={isbn}
             onChangeText={setIsbn}
             keyboardType="number-pad"
@@ -91,50 +91,50 @@ export default function AddBookScreen() {
           <Pressable
             onPress={handleSearch}
             disabled={phase === 'loading' || !isbnReady}
-            className={`py-3 rounded-xl items-center ${phase === 'loading' || !isbnReady ? 'bg-stone-200' : 'bg-accent'}`}
+            className={`py-3 rounded-full items-center ${phase === 'loading' || !isbnReady ? 'bg-surface-2' : 'bg-accent'}`}
           >
-            <Text className={`font-semibold text-base ${phase === 'loading' || !isbnReady ? 'text-stone-400' : 'text-white'}`}>
+            <Text className={`font-semibold text-base ${phase === 'loading' || !isbnReady ? 'text-ink-faint' : 'text-accent-on'}`}>
               {phase === 'loading' ? 'Searching…' : 'Search'}
             </Text>
           </Pressable>
 
           <View className="flex-row items-center gap-3">
-            <View className="flex-1 h-px bg-stone-200" />
-            <Text className="text-stone-400 text-xs">or</Text>
-            <View className="flex-1 h-px bg-stone-200" />
+            <View className="flex-1 h-px bg-border" />
+            <Text className="text-ink-faint text-xs">or</Text>
+            <View className="flex-1 h-px bg-border" />
           </View>
 
           <Pressable
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onPress={() => router.push('/scan' as any)}
-            className="py-3 rounded-xl items-center border border-stone-200"
+            className="py-3 rounded-full items-center border border-border"
           >
-            <Text className="text-stone-600 font-semibold text-base">Scan Barcode</Text>
+            <Text className="text-accent font-semibold text-base">Scan Barcode</Text>
           </Pressable>
         </View>
 
         {/* Loading */}
         {phase === 'loading' && (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#0061a4" />
+            <ActivityIndicator size="large" color={colors.accent.default} />
           </View>
         )}
 
         {/* Not found */}
         {phase === 'not-found' && (
           <View className="flex-1 items-center justify-center px-8 gap-4">
-            <Text className="text-stone-500 text-base text-center">
+            <Text className="text-ink-muted text-base text-center">
               No book found for that ISBN.{'\n'}You can add it manually instead.
             </Text>
             <Pressable
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               onPress={() => router.push({ pathname: '/manual-entry' as any, params: { isbn: cleanISBN(isbn) } })}
-              className="bg-accent px-6 py-3 rounded-xl"
+              className="bg-accent px-6 py-3 rounded-full"
             >
-              <Text className="text-white font-semibold">Add Manually</Text>
+              <Text className="text-accent-on font-semibold">Add Manually</Text>
             </Pressable>
             <Pressable onPress={handleReset}>
-              <Text className="text-stone-400 font-medium">Try another ISBN</Text>
+              <Text className="text-ink-faint font-medium">Try another ISBN</Text>
             </Pressable>
           </View>
         )}
@@ -142,7 +142,7 @@ export default function AddBookScreen() {
         {/* Network error */}
         {phase === 'error' && (
           <View className="flex-1 items-center justify-center px-8 gap-4">
-            <Text className="text-stone-500 text-base text-center">
+            <Text className="text-ink-muted text-base text-center">
               Couldn't reach Open Library.{'\n'}Check your connection and try again.
             </Text>
             <Pressable onPress={() => setPhase('input')}>
@@ -161,18 +161,18 @@ export default function AddBookScreen() {
               {preview.coverImage ? (
                 <Image
                   source={{ uri: preview.coverImage }}
-                  className="w-32 h-48 rounded-xl bg-stone-100"
+                  className="w-32 h-48 rounded-xl bg-surface-2"
                   resizeMode="cover"
                 />
               ) : (
-                <View className="w-32 h-48 rounded-xl bg-stone-100 items-center justify-center">
-                  <Text className="text-stone-300 text-sm">No cover</Text>
+                <View className="w-32 h-48 rounded-xl bg-surface-2 items-center justify-center">
+                  <Text className="text-ink-faint text-sm">No cover</Text>
                 </View>
               )}
               <View className="items-center gap-1 w-full">
-                <Text className="text-stone-900 text-xl font-bold text-center">{preview.title}</Text>
-                <Text className="text-stone-500 text-base">{preview.author}</Text>
-                <Text className="text-stone-400 text-sm mt-1">
+                <Text className="text-ink text-xl font-bold text-center">{preview.title}</Text>
+                <Text className="text-ink-muted text-base">{preview.author}</Text>
+                <Text className="text-ink-faint text-sm mt-1">
                   {preview.genre} · {preview.pages} pages · {preview.publishedDate.slice(0, 4)}
                 </Text>
               </View>
@@ -180,15 +180,15 @@ export default function AddBookScreen() {
 
             <View className="px-5 gap-3">
               {isDuplicate && (
-                <Text className="text-red-500 text-sm text-center">
+                <Text className="text-red-400 text-sm text-center">
                   This book is already in your library.
                 </Text>
               )}
-              <Pressable onPress={handleAdd} className="bg-accent py-3 rounded-xl items-center">
-                <Text className="text-white font-semibold text-base">Add to Library</Text>
+              <Pressable onPress={handleAdd} className="bg-accent py-3 rounded-full items-center">
+                <Text className="text-accent-on font-semibold text-base">Add to Library</Text>
               </Pressable>
               <Pressable onPress={handleReset} className="py-3 items-center">
-                <Text className="text-stone-400 font-medium">Search another ISBN</Text>
+                <Text className="text-ink-faint font-medium">Search another ISBN</Text>
               </Pressable>
             </View>
           </ScrollView>

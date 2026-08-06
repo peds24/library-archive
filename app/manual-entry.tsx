@@ -1,15 +1,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  TextInputProps,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text } from 'react-native';
+import M3TextField from '@/src/components/M3TextField';
 import { useBookStore } from '@/src/store/bookStore';
 
 export default function ManualEntryScreen() {
@@ -57,14 +49,14 @@ export default function ManualEntryScreen() {
     <>
       <Stack.Screen options={{ title: 'Add Manually' }} />
       <KeyboardAvoidingView
-        className="flex-1 bg-stone-50"
+        className="flex-1 bg-surface"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 48 }}
           keyboardShouldPersistTaps="handled"
         >
-          <FormField
+          <M3TextField
             label="ISBN"
             value={isbn}
             onChangeText={(v) => { setIsbn(v); setDuplicate(false); }}
@@ -72,7 +64,7 @@ export default function ManualEntryScreen() {
             placeholder="e.g. 9781534332560"
           />
 
-          <FormField
+          <M3TextField
             label="Title"
             required
             value={title}
@@ -81,7 +73,7 @@ export default function ManualEntryScreen() {
             autoCapitalize="words"
           />
 
-          <FormField
+          <M3TextField
             label="Author"
             required
             value={author}
@@ -90,7 +82,7 @@ export default function ManualEntryScreen() {
             autoCapitalize="words"
           />
 
-          <FormField
+          <M3TextField
             label="Genre"
             value={genre}
             onChangeText={setGenre}
@@ -98,7 +90,7 @@ export default function ManualEntryScreen() {
             autoCapitalize="words"
           />
 
-          <FormField
+          <M3TextField
             label="Pages"
             value={pages}
             onChangeText={setPages}
@@ -106,7 +98,7 @@ export default function ManualEntryScreen() {
             placeholder="e.g. 320"
           />
 
-          <FormField
+          <M3TextField
             label="Published Year"
             value={year}
             onChangeText={setYear}
@@ -115,7 +107,7 @@ export default function ManualEntryScreen() {
           />
 
           {duplicate && (
-            <Text className="text-red-500 text-sm text-center">
+            <Text className="text-red-400 text-sm text-center">
               A book with this ISBN is already in your library.
             </Text>
           )}
@@ -123,35 +115,14 @@ export default function ManualEntryScreen() {
           <Pressable
             onPress={handleAdd}
             disabled={!canAdd}
-            className={`py-3 rounded-xl items-center mt-2 ${canAdd ? 'bg-accent' : 'bg-stone-200'}`}
+            className={`py-3 rounded-full items-center mt-2 ${canAdd ? 'bg-accent' : 'bg-surface-2'}`}
           >
-            <Text className={`font-semibold text-base ${canAdd ? 'text-white' : 'text-stone-400'}`}>
+            <Text className={`font-semibold text-base ${canAdd ? 'text-accent-on' : 'text-ink-faint'}`}>
               Add to Library
             </Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
     </>
-  );
-}
-
-function FormField({
-  label,
-  required,
-  ...inputProps
-}: { label: string; required?: boolean } & TextInputProps) {
-  return (
-    <View className="gap-1.5">
-      <Text className="text-stone-500 text-xs font-semibold uppercase tracking-widest">
-        {label}
-        {required && <Text className="text-red-400"> *</Text>}
-      </Text>
-      <TextInput
-        className="bg-white rounded-xl px-4 py-3 text-stone-900 text-base border border-stone-200"
-        placeholderTextColor="#a8a29e"
-        returnKeyType="next"
-        {...inputProps}
-      />
-    </View>
   );
 }

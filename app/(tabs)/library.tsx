@@ -38,7 +38,7 @@ export default function LibraryScreen() {
     });
 
   return (
-    <View className="flex-1 bg-stone-50">
+    <View className="flex-1 bg-surface">
       <FilterBar filters={STATUS_FILTERS} active={filter} onSelect={setFilter} />
       <FilterBar filters={SORT_OPTIONS} active={sort} onSelect={setSort} />
       <FlatList
