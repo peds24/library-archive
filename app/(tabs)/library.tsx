@@ -25,8 +25,8 @@ const SORT_OPTIONS: { label: string; value: SortOption }[] = [
   { label: 'Z–A', value: 'za' },
 ];
 
-// Matches FilterBar's fixed row height: h-8 (32px) pill + 6px top/bottom padding.
-const FILTER_ROW_HEIGHT = 44;
+// Matches FilterBar's fixed row height: h-9 (36px) pill + 6px top/bottom padding.
+const FILTER_ROW_HEIGHT = 48;
 const FILTERS_HEIGHT = FILTER_ROW_HEIGHT * 2;
 
 export default function LibraryScreen() {
