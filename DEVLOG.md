@@ -719,6 +719,30 @@ assets/images/{icon,favicon,splash-icon,android-icon-foreground,
 
 ---
 
+### 2026-08-06 — Fixed data loss in the multi-book barcode scan loop (branch: fix-bulk-scan)
+
+**What happened:**
+- Fixed `app/scan.tsx` silently discarding scanned books when adding several in a row. The preview step's two actions were "Add to Library" (saved the previewed book and exited immediately) and "Scan another" (which only called `resumeScanning()` — reset the camera without ever calling `addBook`). Scanning book after book and tapping "Scan another" between each one threw away every book except whichever was on screen when "Add to Library" was finally tapped.
+- There was a separate, more elaborate "Bulk" mode (a header toggle, a `bulkQueue` array, "Add to Queue"/"Skip" buttons, and a "Confirm All" bar) that did defer writes correctly via a temp array — but it required deliberately switching it on first, and the reported bug was hit going through the plain, default flow, whose button labels ("Add to Library"/"Scan another") match what was reported.
+- Removed the separate Bulk toggle/queue path and made the default flow itself do the right thing: `handleAddAndContinue` (bound to "Scan another") now calls `addBook` before resuming the camera, and `handleAddAndExit` (bound to "Add to Library") calls `addBook` then navigates back. Every scan is written straight to the store (and SQLite) as soon as its preview is confirmed, so scanning N books and hitting "Scan another" N-1 times followed by "Add to Library" now saves all N — matching how the two buttons already read.
+
+**Design Decisions:**
+
+*Why remove the Bulk toggle/queue system instead of just fixing "Scan another" underneath it and leaving Bulk mode as an option?*
+Once "Scan another" saves-and-continues by default, a separate deferred-queue mode that does almost the same thing under different button labels ("Add to Queue"/"Skip"/"Confirm All") is a second way to do the same job — two overlapping multi-add mechanisms in one screen, one of which (the default) most people would hit first and by name-match is what was actually reported broken. Simpler to have one flow that works than two, one of which is undiscoverable behind a header toggle.
+
+*Why write straight to the store per scan instead of keeping a temp array and batching the writes?*
+The duplicate check (`books.some(b => b.id === isbn)`) already reads from the live Zustand store, which updates synchronously on `addBook`. Writing immediately means that check keeps working against everything scanned so far in the same session for free — a temp queue would've needed its own separate "is this already queued" check (which is in fact what the old `bulkQueue.some(...)` clause existed for, and disappeared along with the queue).
+
+**Architecture state after this session:**
+```
+app/scan.tsx — single linear flow: scan → preview → [Add to Library: save + router.back()]
+  or [Scan another: save + resume camera]. No mode toggle, no temp queue — every
+  confirmed preview is written to the store (and SQLite) immediately via addBook.
+```
+
+---
+
 <!-- TEMPLATE — copy this block to start a new session entry
 
 ### YYYY-MM-DD — Session Title

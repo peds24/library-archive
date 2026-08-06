@@ -27,8 +27,6 @@ export default function ScanScreen() {
   const [phase, setPhase] = useState<ScanPhase>('scanning');
   const [preview, setPreview] = useState<Book | null>(null);
   const [lastIsbn, setLastIsbn] = useState('');
-  const [bulkQueue, setBulkQueue] = useState<Book[]>([]);
-  const [isBulk, setIsBulk] = useState(false);
   const isProcessing = useRef(false);
 
   // Permission not yet resolved
@@ -64,7 +62,7 @@ export default function ScanScreen() {
       const book = await lookupByISBN(isbn);
       if (!book) {
         setPhase('not-found');
-      } else if (books.some((b) => b.id === isbn) || bulkQueue.some((b) => b.id === isbn)) {
+      } else if (books.some((b) => b.id === isbn)) {
         setPreview(book);
         setPhase('duplicate');
       } else {
@@ -82,20 +80,20 @@ export default function ScanScreen() {
     isProcessing.current = false;
   }
 
-  function handleAddSingle() {
+  // Every scan is saved the moment its preview is confirmed — "Scan another"
+  // saves and loops back to the camera, "Add to Library" saves and exits.
+  // (Books are written straight to the store rather than held in a temp
+  // queue, so `books` above already reflects prior scans for the duplicate
+  // check on the next barcode.)
+  function handleAddAndContinue() {
     if (!preview) return;
     addBook(preview);
-    router.back();
-  }
-
-  function handleAddToQueue() {
-    if (!preview) return;
-    setBulkQueue((q) => [...q, preview]);
     resumeScanning();
   }
 
-  function handleConfirmAll() {
-    bulkQueue.forEach(addBook);
+  function handleAddAndExit() {
+    if (!preview) return;
+    addBook(preview);
     router.back();
   }
 
@@ -104,18 +102,7 @@ export default function ScanScreen() {
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          title: isBulk && bulkQueue.length > 0 ? `Scanning — ${bulkQueue.length} queued` : 'Scan Book',
-          headerRight: () => (
-            <Pressable onPress={() => setIsBulk((v) => !v)} style={{ marginRight: 16 }}>
-              <Text style={{ color: isBulk ? colors.accent.default : 'rgba(255,255,255,0.5)', fontWeight: '600', fontSize: 14 }}>
-                Bulk
-              </Text>
-            </Pressable>
-          ),
-        }}
-      />
+      <Stack.Screen options={{ title: 'Scan Book' }} />
 
       <View style={styles.black}>
         {/* Camera */}
@@ -141,17 +128,6 @@ export default function ScanScreen() {
           <View style={StyleSheet.absoluteFill} className="items-center justify-center bg-black/60">
             <ActivityIndicator size="large" color={colors.accent.default} />
             <Text className="text-white/70 text-sm mt-3">Looking up book…</Text>
-          </View>
-        )}
-
-        {/* Confirm all bar — shown while camera is active in bulk mode */}
-        {isBulk && bulkQueue.length > 0 && cameraActive && (
-          <View className="absolute bottom-0 left-0 right-0 px-5 pb-8 pt-4 bg-black/70">
-            <Pressable onPress={handleConfirmAll} className="bg-accent py-3 rounded-full items-center">
-              <Text className="text-accent-on font-bold text-base">
-                Confirm All · {bulkQueue.length} {bulkQueue.length === 1 ? 'book' : 'books'}
-              </Text>
-            </Pressable>
           </View>
         )}
 
@@ -181,7 +157,7 @@ export default function ScanScreen() {
             {/* Duplicate notice */}
             {phase === 'duplicate' && (
               <Text className="text-accent text-sm text-center font-medium">
-                Already in your library{isBulk && bulkQueue.length > 0 ? ' or scan queue' : ''}.
+                Already in your library.
               </Text>
             )}
 
@@ -208,18 +184,11 @@ export default function ScanScreen() {
             {/* Actions */}
             {phase === 'preview' && (
               <View className="gap-2">
-                <Pressable
-                  onPress={isBulk ? handleAddToQueue : handleAddSingle}
-                  className="bg-accent py-3 rounded-full items-center"
-                >
-                  <Text className="text-accent-on font-semibold text-base">
-                    {isBulk ? 'Add to Queue' : 'Add to Library'}
-                  </Text>
+                <Pressable onPress={handleAddAndExit} className="bg-accent py-3 rounded-full items-center">
+                  <Text className="text-accent-on font-semibold text-base">Add to Library</Text>
                 </Pressable>
-                <Pressable onPress={resumeScanning} className="py-2 items-center">
-                  <Text className="text-ink-faint font-medium">
-                    {isBulk ? 'Skip' : 'Scan another'}
-                  </Text>
+                <Pressable onPress={handleAddAndContinue} className="py-2 items-center">
+                  <Text className="text-ink-faint font-medium">Scan another</Text>
                 </Pressable>
               </View>
             )}
