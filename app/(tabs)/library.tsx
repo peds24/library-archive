@@ -99,10 +99,10 @@ export default function LibraryScreen() {
   return (
     <View className="flex-1 bg-surface">
       {searchOpen && (
-        <View className="flex-row items-center gap-2 mx-4 mt-3 mb-1 px-3 h-11 rounded-full bg-surface-2">
+        <View className="flex-row items-center gap-2 mx-4 mt-3 mb-1 px-3 h-11 rounded-full bg-surface-2 border-2 border-accent">
           <SymbolView
             name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }}
-            tintColor={colors.ink.faint}
+            tintColor={colors.accent.default}
             size={16}
           />
           <TextInput
