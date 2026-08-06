@@ -25,11 +25,11 @@ export default function FilterBar<T extends string>({ filters, active, onSelect 
           <Pressable
             key={f.value}
             onPress={() => onSelect(f.value)}
-            className={`h-8 px-3 items-center justify-center rounded-full border ${
+            className={`h-9 px-3.5 items-center justify-center rounded-full border ${
               isActive ? 'bg-accent-container border-transparent' : 'bg-surface border-border'
             }`}
           >
-            <Text className={`text-sm font-medium ${isActive ? 'text-accent-on-container' : 'text-ink-muted'}`}>
+            <Text className={`text-base font-medium ${isActive ? 'text-accent-on-container' : 'text-ink-muted'}`}>
               {isActive ? `✓ ${f.label}` : f.label}
             </Text>
           </Pressable>

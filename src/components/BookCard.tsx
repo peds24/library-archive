@@ -57,19 +57,19 @@ export default function BookCard({ book, variant = 'compact', showStatus = false
     <Pressable onPress={onPress} className="rounded-2xl p-3 flex-row items-center gap-3 active:bg-surface-2">
       <Image
         source={{ uri: book.coverImage }}
-        className="w-12 h-16 rounded-lg bg-surface-2"
+        className="w-14 h-20 rounded-lg bg-surface-2"
         resizeMode="cover"
       />
-      <View className="flex-1 gap-0.5">
-        <Text className="text-ink font-medium text-sm leading-snug" numberOfLines={1}>
+      <View className="flex-1 gap-1">
+        <Text className="text-ink font-medium text-base leading-snug" numberOfLines={1}>
           {book.title}
         </Text>
-        <Text className="text-ink-muted text-xs">{book.author}</Text>
-        <Text className="text-ink-faint text-xs">{book.genre}</Text>
+        <Text className="text-ink-muted text-sm">{book.author}</Text>
+        <Text className="text-ink-faint text-sm">{book.genre}</Text>
       </View>
       {showStatus && (
-        <View className={`px-2 py-1 rounded-full ${STATUS_BG[book.status]}`}>
-          <Text className={`text-xs font-medium ${STATUS_TEXT[book.status]}`}>
+        <View className={`px-2.5 py-1 rounded-full ${STATUS_BG[book.status]}`}>
+          <Text className={`text-sm font-medium ${STATUS_TEXT[book.status]}`}>
             {STATUS_LABEL[book.status]}
           </Text>
         </View>

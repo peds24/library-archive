@@ -680,6 +680,45 @@ className, until/unless that interop gap is otherwise resolved.
 
 ---
 
+### 2026-08-06 — Larger library text, fixed tab label clipping, real app icon (branch: android-view-tweaks)
+
+**What happened:**
+- Bumped text sizes in `BookCard`'s compact variant (used by the Library list): title `text-sm`→`text-base`, author/genre `text-xs`→`text-sm`, status badge `text-xs`→`text-sm`, cover art `w-12 h-16`→`w-14 h-20` to stay proportional. `FilterBar` pills went `text-sm`→`text-base` and `h-8`→`h-9` to match; `library.tsx`'s `FILTER_ROW_HEIGHT` constant (used to size the collapsing-filters animation) was updated from 44 to 48 to stay in sync with the taller pills.
+- **Found and fixed the real cause of the bottom tab bar's "Reading"/"Library" labels wrapping to two lines and getting clipped.** `(tabs)/_layout.tsx`'s custom `TabIcon` renders an icon pill *and* a label together into the `tabBarIcon` slot (with `tabBarShowLabel: false`) so the focused-state pill only wraps the icon. That slot, though, is React Navigation's `TabBarIcon` wrapper — sized to a fixed 31×28px (`ICON_SIZE_WIDE`/`ICON_SIZE_TALL` in the vendored `expo-router/build/react-navigation/bottom-tabs/views/TabBarIcon.js`) meant for an icon-only glyph, and our content was absolutely positioned to fill exactly that box regardless of how much it actually needed. Traced this by reading the vendored React Navigation source rather than guessing from CSS values. Fixed by passing `tabBarIconStyle: { width: 80, height: 52 }` in `screenOptions` (a supported override — `BottomTabBar.js` forwards `options.tabBarIconStyle` straight through as the icon slot's `style`), enlarging the icon pill itself (`w-12 h-7`→`w-14 h-8`, icon glyph 22→24) so it reads less cramped, and setting an explicit `tabBarStyle.height: 80` since the default tab bar height (49px) was sized for the old fixed icon slot and wouldn't have grown to fit the new one. Also added `numberOfLines={1}` and `allowFontScaling={false}` to the label `Text` as a second line of defense against wrapping under larger device font-scale settings.
+- Replaced the placeholder Expo icon/splash assets with the real app logo (an "impossible triangle" mark, supplied as `Boardlogo-roud(1).svg`) across every slot `app.json` references: `icon.png` and `favicon.png` (1024px/48px, using the source SVG as-is — it already has its near-black background baked in), `splash-icon.png` and `android-icon-foreground.png` (background stripped out, transparent, mark scaled down and centered on a padded canvas so it sits inside Android's adaptive-icon safe zone instead of touching the mask edges), `android-icon-monochrome.png` (same padded/transparent mark with all three fills flattened to white, since Android derives the themed-icon tint from alpha alone), and `android-icon-background.png` (flat `#000000`, matching `app.json`'s existing `adaptiveIcon.backgroundColor`).
+
+**Design Decisions:**
+
+*Why `tabBarIconStyle` instead of switching back to React Navigation's built-in label rendering?*
+The built-in label path was deliberately avoided in an earlier session specifically because it visually overlapped this app's custom focused-pill treatment (see the `TabIcon` comment). `tabBarIconStyle` fixes the actual bug — an undersized fixed slot — without touching that already-solved layout problem, and keeps the icon+label as one component that's easy to reason about.
+
+*Why rasterize the SVG with `resvg-cli` via `npx` rather than installing a conversion tool as a dependency?*
+No SVG→PNG rasterizer was available locally (`rsvg-convert`, `inkscape`, ImageMagick, `sharp`, `cairosvg` were all absent), and icon generation is a one-off task, not something the app needs at runtime or build time going forward — so it didn't warrant a new `devDependency`. `npx --yes resvg-cli` fetches an ephemeral copy for the session without touching `package.json`.
+
+*Why regenerate the adaptive-icon foreground/monochrome images with extra padding instead of just scaling the existing SVG straight to 1024px?*
+The source mark fills roughly 85% of its own canvas edge-to-edge. Android's adaptive-icon mask only guarantees the inner ~66% of the foreground layer is visible across all launcher shapes (circle, squircle, rounded square) — rendering the mark at full bleed would get its corners clipped on most devices. Wrapped the background-stripped mark in a 768px canvas (1.5×) with the original 512px content centered inside, so the final 1024px export keeps the mark within the safe zone.
+
+**Architecture state after this session:**
+```
+src/components/BookCard.tsx — compact variant (Library list) text bumped one Tailwind
+  step across the board; large variant (Reading tab) untouched.
+src/components/FilterBar.tsx — pills are h-9/text-base now; library.tsx's
+  FILTER_ROW_HEIGHT constant tracks this and must be kept in sync if it changes again.
+
+app/(tabs)/_layout.tsx — TabIcon's icon+label combo now renders into an explicitly
+  sized 80×52 tabBarIconStyle slot (was an unstated default 31×28, the actual source
+  of the wrapping/clipping bug); tabBarStyle.height is explicitly 80 to match.
+
+assets/images/{icon,favicon,splash-icon,android-icon-foreground,
+  android-icon-background,android-icon-monochrome}.png — real app branding (impossible-
+  triangle mark) replacing Expo's default placeholder icons; app.json's references
+  were already correct and needed no changes. Regenerated from
+  ~/Downloads/Boardlogo-roud(1).svg via a throwaway resvg-cli pipeline (not checked
+  into the repo) — re-run manually from the source SVG if the mark ever changes.
+```
+
+---
+
 <!-- TEMPLATE — copy this block to start a new session entry
 
 ### YYYY-MM-DD — Session Title

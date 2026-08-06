@@ -14,13 +14,17 @@ interface TabIconProps {
 
 // Renders icon + label together so the focused pill can wrap just the
 // icon without React Navigation's separate label overlapping it.
+// NB: this whole thing is laid out inside React Navigation's fixed-size
+// icon slot (see tabBarIconStyle below) — it does NOT get to size itself.
 function TabIcon({ focused, color, label, ios, android, web }: TabIconProps) {
   return (
-    <View className="items-center justify-center gap-1 pt-1.5 pb-2">
-      <View className={`w-12 h-7 items-center justify-center rounded-full ${focused ? 'bg-accent-container' : ''}`}>
-        <SymbolView name={{ ios, android, web }} tintColor={color} size={22} />
+    <View className="items-center justify-center gap-1">
+      <View className={`w-14 h-8 items-center justify-center rounded-full ${focused ? 'bg-accent-container' : ''}`}>
+        <SymbolView name={{ ios, android, web }} tintColor={color} size={24} />
       </View>
-      <Text style={{ color, fontSize: 13, fontWeight: '600' }}>{label}</Text>
+      <Text style={{ color, fontSize: 13, fontWeight: '600' }} numberOfLines={1} allowFontScaling={false}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -32,7 +36,12 @@ export default function TabLayout() {
         tabBarShowLabel: false,
         tabBarActiveTintColor: colors.accent.onContainer,
         tabBarInactiveTintColor: colors.ink.muted,
-        tabBarStyle: { backgroundColor: colors.surface.default, borderTopWidth: 0 },
+        // React Navigation renders tabBarIcon into a fixed-size slot (31x28 by
+        // default) meant for an icon-only glyph. Our TabIcon packs an icon pill
+        // AND a label into that slot, so without an explicit override here the
+        // label gets squeezed, wraps to two lines, and is clipped.
+        tabBarIconStyle: { width: 80, height: 52 },
+        tabBarStyle: { backgroundColor: colors.surface.default, borderTopWidth: 0, height: 80 },
         headerStyle: { backgroundColor: colors.surface.default },
         headerShadowVisible: false,
         headerTitleStyle: { color: colors.ink.default, fontWeight: '700', fontSize: 28 },
