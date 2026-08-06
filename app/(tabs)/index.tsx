@@ -9,7 +9,7 @@ export default function CurrentlyReadingScreen() {
   const readingBooks = books.filter((b) => b.status === 'reading');
 
   return (
-    <View className="flex-1 bg-stone-50">
+    <View className="flex-1 bg-surface">
       <FlatList
         data={readingBooks}
         keyExtractor={(item) => item.id}
@@ -23,7 +23,7 @@ export default function CurrentlyReadingScreen() {
         )}
         ListEmptyComponent={
           <View className="items-center justify-center py-24">
-            <Text className="text-stone-400 text-base">Nothing being read right now.</Text>
+            <Text className="text-ink-faint text-base">Nothing being read right now.</Text>
           </View>
         }
       />

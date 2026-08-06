@@ -16,8 +16,8 @@ export default function FilterBar<T extends string>({ filters, active, onSelect 
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 10, gap: 8, flexDirection: 'row' }}
-      className="border-b border-stone-200 bg-stone-50"
+      style={{ flexGrow: 0 }}
+      contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 6, gap: 8, flexDirection: 'row', alignItems: 'center' }}
     >
       {filters.map((f) => {
         const isActive = f.value === active;
@@ -25,10 +25,12 @@ export default function FilterBar<T extends string>({ filters, active, onSelect 
           <Pressable
             key={f.value}
             onPress={() => onSelect(f.value)}
-            className={`px-3 py-1.5 rounded-full ${isActive ? 'bg-accent' : 'bg-stone-100'}`}
+            className={`h-8 px-3 items-center justify-center rounded-full border ${
+              isActive ? 'bg-accent-container border-transparent' : 'bg-surface border-border'
+            }`}
           >
-            <Text className={`text-sm font-medium ${isActive ? 'text-white' : 'text-stone-600'}`}>
-              {f.label}
+            <Text className={`text-sm font-medium ${isActive ? 'text-accent-on-container' : 'text-ink-muted'}`}>
+              {isActive ? `✓ ${f.label}` : f.label}
             </Text>
           </Pressable>
         );

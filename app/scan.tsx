@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { lookupByISBN } from '@/src/services/bookLookup';
 import { useBookStore } from '@/src/store/bookStore';
+import { colors } from '@/src/theme/colors';
 import { Book } from '@/src/types/book';
 
 type ScanPhase = 'scanning' | 'fetching' | 'preview' | 'duplicate' | 'not-found' | 'error';
@@ -38,15 +39,15 @@ export default function ScanScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'Scan Book' }} />
-        <View className="flex-1 items-center justify-center bg-stone-50 px-8 gap-5">
-          <Text className="text-stone-900 text-lg font-semibold text-center">
+        <View className="flex-1 items-center justify-center bg-surface px-8 gap-5">
+          <Text className="text-ink text-lg font-semibold text-center">
             Camera access needed
           </Text>
-          <Text className="text-stone-500 text-base text-center">
+          <Text className="text-ink-muted text-base text-center">
             Allow camera access to scan barcodes on your books.
           </Text>
-          <Pressable onPress={requestPermission} className="bg-accent px-6 py-3 rounded-xl">
-            <Text className="text-white font-semibold text-base">Allow Camera</Text>
+          <Pressable onPress={requestPermission} className="bg-accent px-6 py-3 rounded-full">
+            <Text className="text-accent-on font-semibold text-base">Allow Camera</Text>
           </Pressable>
         </View>
       </>
@@ -108,7 +109,7 @@ export default function ScanScreen() {
           title: isBulk && bulkQueue.length > 0 ? `Scanning — ${bulkQueue.length} queued` : 'Scan Book',
           headerRight: () => (
             <Pressable onPress={() => setIsBulk((v) => !v)} style={{ marginRight: 16 }}>
-              <Text style={{ color: isBulk ? '#60a5fa' : 'rgba(255,255,255,0.5)', fontWeight: '600', fontSize: 14 }}>
+              <Text style={{ color: isBulk ? colors.accent.default : 'rgba(255,255,255,0.5)', fontWeight: '600', fontSize: 14 }}>
                 Bulk
               </Text>
             </Pressable>
@@ -138,7 +139,7 @@ export default function ScanScreen() {
         {/* Fetching overlay */}
         {phase === 'fetching' && (
           <View style={StyleSheet.absoluteFill} className="items-center justify-center bg-black/60">
-            <ActivityIndicator size="large" color="#60a5fa" />
+            <ActivityIndicator size="large" color={colors.accent.default} />
             <Text className="text-white/70 text-sm mt-3">Looking up book…</Text>
           </View>
         )}
@@ -146,8 +147,8 @@ export default function ScanScreen() {
         {/* Confirm all bar — shown while camera is active in bulk mode */}
         {isBulk && bulkQueue.length > 0 && cameraActive && (
           <View className="absolute bottom-0 left-0 right-0 px-5 pb-8 pt-4 bg-black/70">
-            <Pressable onPress={handleConfirmAll} className="bg-accent py-3 rounded-xl items-center">
-              <Text className="text-white font-bold text-base">
+            <Pressable onPress={handleConfirmAll} className="bg-accent py-3 rounded-full items-center">
+              <Text className="text-accent-on font-bold text-base">
                 Confirm All · {bulkQueue.length} {bulkQueue.length === 1 ? 'book' : 'books'}
               </Text>
             </Pressable>
@@ -156,21 +157,21 @@ export default function ScanScreen() {
 
         {/* Bottom sheet — preview / duplicate / not-found / error */}
         {showBottomSheet && (
-          <View className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl px-6 pt-6 pb-10 gap-4">
+          <View className="absolute bottom-0 left-0 right-0 bg-surface-2 rounded-t-3xl px-6 pt-6 pb-10 gap-4">
             {/* Book preview */}
             {(phase === 'preview' || phase === 'duplicate') && preview && (
               <View className="flex-row gap-4">
                 <Image
                   source={{ uri: preview.coverImage }}
-                  className="w-16 h-24 rounded-lg bg-stone-100"
+                  className="w-16 h-24 rounded-lg bg-surface"
                   resizeMode="cover"
                 />
                 <View className="flex-1 justify-center gap-1">
-                  <Text className="text-stone-900 font-semibold text-base leading-snug" numberOfLines={2}>
+                  <Text className="text-ink font-semibold text-base leading-snug" numberOfLines={2}>
                     {preview.title}
                   </Text>
-                  <Text className="text-stone-500 text-sm">{preview.author}</Text>
-                  <Text className="text-stone-400 text-xs mt-1">
+                  <Text className="text-ink-muted text-sm">{preview.author}</Text>
+                  <Text className="text-ink-faint text-xs mt-1">
                     {preview.genre} · {preview.pages} pages
                   </Text>
                 </View>
@@ -187,8 +188,8 @@ export default function ScanScreen() {
             {/* Not found */}
             {phase === 'not-found' && (
               <View className="items-center gap-2 py-2">
-                <Text className="text-stone-900 font-semibold text-base">Book not found</Text>
-                <Text className="text-stone-400 text-sm text-center">
+                <Text className="text-ink font-semibold text-base">Book not found</Text>
+                <Text className="text-ink-faint text-sm text-center">
                   This ISBN wasn't in any database.{'\n'}Add it manually or scan another.
                 </Text>
               </View>
@@ -197,8 +198,8 @@ export default function ScanScreen() {
             {/* Network error */}
             {phase === 'error' && (
               <View className="items-center gap-2 py-2">
-                <Text className="text-stone-900 font-semibold text-base">Network error</Text>
-                <Text className="text-stone-400 text-sm text-center">
+                <Text className="text-ink font-semibold text-base">Network error</Text>
+                <Text className="text-ink-faint text-sm text-center">
                   Couldn't reach Open Library.{'\n'}Check your connection.
                 </Text>
               </View>
@@ -209,14 +210,14 @@ export default function ScanScreen() {
               <View className="gap-2">
                 <Pressable
                   onPress={isBulk ? handleAddToQueue : handleAddSingle}
-                  className="bg-accent py-3 rounded-xl items-center"
+                  className="bg-accent py-3 rounded-full items-center"
                 >
-                  <Text className="text-white font-semibold text-base">
+                  <Text className="text-accent-on font-semibold text-base">
                     {isBulk ? 'Add to Queue' : 'Add to Library'}
                   </Text>
                 </Pressable>
                 <Pressable onPress={resumeScanning} className="py-2 items-center">
-                  <Text className="text-stone-400 font-medium">
+                  <Text className="text-ink-faint font-medium">
                     {isBulk ? 'Skip' : 'Scan another'}
                   </Text>
                 </Pressable>
@@ -224,8 +225,8 @@ export default function ScanScreen() {
             )}
 
             {(phase === 'duplicate' || phase === 'error') && (
-              <Pressable onPress={resumeScanning} className="bg-stone-100 py-3 rounded-xl items-center">
-                <Text className="text-stone-700 font-semibold">Scan another</Text>
+              <Pressable onPress={resumeScanning} className="border border-border py-3 rounded-full items-center">
+                <Text className="text-accent font-semibold">Scan another</Text>
               </Pressable>
             )}
 
@@ -234,12 +235,12 @@ export default function ScanScreen() {
                 <Pressable
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   onPress={() => router.push({ pathname: '/manual-entry' as any, params: { isbn: lastIsbn } })}
-                  className="bg-accent py-3 rounded-xl items-center"
+                  className="bg-accent py-3 rounded-full items-center"
                 >
-                  <Text className="text-white font-semibold">Add Manually</Text>
+                  <Text className="text-accent-on font-semibold">Add Manually</Text>
                 </Pressable>
-                <Pressable onPress={resumeScanning} className="bg-stone-100 py-3 rounded-xl items-center">
-                  <Text className="text-stone-700 font-semibold">Scan another</Text>
+                <Pressable onPress={resumeScanning} className="border border-border py-3 rounded-full items-center">
+                  <Text className="text-accent font-semibold">Scan another</Text>
                 </Pressable>
               </View>
             )}

@@ -44,7 +44,7 @@ No login screen, no backend, no analytics. The data model is intentionally small
 | Framework | [Expo](https://expo.dev) (React Native, managed workflow) | One codebase, native camera + SQLite access, no native build step during development |
 | Language | TypeScript | The `Book` interface is the contract every screen, store, and DB call agrees on |
 | Routing | Expo Router | File-based routes keep the six screens above self-evident from the folder structure |
-| Styling | NativeWind (Tailwind for React Native) | Utility classes without hand-rolled `StyleSheet` objects; a single `accent` token drives the whole app's theme |
+| Styling | NativeWind (Tailwind for React Native) | Utility classes without hand-rolled `StyleSheet` objects; a structured token set (`accent`, `surface`, `ink`, `status`) in `tailwind.config.js` drives the whole app's Material 3 / OLED-black theme |
 | State | Zustand | One small store holding the in-memory book list, hydrated from SQLite on launch |
 | Persistence | `expo-sqlite` | Local, offline, no server — every add/edit/status-change writes straight to disk |
 | Barcode scanning | `expo-camera` | Native scanner performance, no extra permissions beyond camera |
@@ -84,7 +84,7 @@ inspo/                 UI direction mockups and design references (see below)
 
 ## Design direction
 
-The current theme — Material 3 components, an OLED-black default, a blue accent — came out of an explicit UI exploration rather than ad-hoc styling choices. `inspo/mockups/ui-direction-material-crisp.html` is a self-contained, interactive comp (open it directly in a browser) with a live accent switcher for comparing orange/purple/green/blue side by side, plus notes on why each option does or doesn't collide with the app's existing status colors. `inspo/references/` holds the original inspiration screenshots that shaped it.
+The current theme — Material 3 components, an OLED-black default, a blue accent — came out of an explicit UI exploration rather than ad-hoc styling choices, and is now applied throughout the app itself (not just mocked up): filled text fields, filter chips, a segmented status picker, and a pill-indicator nav bar all live in the actual screens above. `inspo/mockups/ui-direction-material-crisp.html` is the self-contained, interactive comp it started from (open it directly in a browser) with a live accent switcher for comparing orange/purple/green/blue side by side, plus notes on why each option does or doesn't collide with the app's existing status colors. `inspo/references/` holds the original inspiration screenshots that shaped it.
 
 That same comp is also published as a hosted [Claude artifact](https://claude.ai/code/artifact/521d588b-11f0-4a76-9c32-444de54ce74f) — the fastest way to click through the four color directions without cloning the repo.
 

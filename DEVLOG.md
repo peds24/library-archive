@@ -580,6 +580,74 @@ of the brand accent.
 
 ---
 
+### 2026-08-05 — Material 3 / OLED-black redesign applied to the app (branch: design-material3)
+
+**What happened:**
+- Applied the Material 3 / OLED-black direction from `inspo/mockups/ui-direction-material-crisp.html` to the real app (previously only the accent color had been applied, on the old light theme). Planned first via a written plan (see plan-mode transcript) since it touched nearly every screen and added new design-system structure.
+- `tailwind.config.js`'s flat `accent` color became a structured token set: `accent` (`DEFAULT`/`on`/`container`/`on-container`), `surface` (`DEFAULT`/`2`), `ink` (`DEFAULT`/`muted`/`faint`), `border`, and `status.{reading,tbr,read,shelved}.{bg,fg}` — values pulled directly from the mockup's dark/blue tokens.
+- New `src/theme/colors.ts` (plain TS hex constants for the handful of spots that need a raw color instead of a className — React Navigation options, `SymbolView` tints, `ActivityIndicator` colors) and `src/components/M3TextField.tsx` (the mockup's filled-field look: label and input sharing one bordered container, accent bottom border) — replaces the duplicated `FormField` in `manual-entry.tsx` and adds a proper label to `add.tsx`'s previously label-less ISBN input.
+- Every screen restyled: `BookCard` (tonal container for the large variant, flat borderless rows for the compact/list variant), `FilterBar` (M3 filter chip with a leading checkmark on the active pill), the tab bar (pill indicator behind the focused icon, built as a fully custom `TabIcon` — see decisions below), Book Detail (M3 segmented status control replacing the old per-status-colored pill row; Pages/Published reskinned as bold-numeral stat tiles that keep their existing tap-to-edit behavior), Add/Manual Entry (`M3TextField`, pill-radius buttons), Scan (dark bottom sheet), root layout (`<StatusBar style="light" />`, since it was confirmed unused anywhere before this), and `app.json` (`userInterfaceStyle: "dark"`, black splash/adaptive-icon background).
+- Explicitly dropped the mockup's hex-clipped book covers per direct instruction — covers stay plain rectangular `<Image>`s, just recolored/re-radius'd. Avoided adding `react-native-svg` as a dependency entirely.
+- Fixed two bugs found via screenshots the user sent after the first pass:
+  1. **Filter chips ballooning to a huge oval when active.** Root cause: a `SymbolView` checkmark icon (`web: 'check'`) rendered unconstrained on web and blew up that one chip's height. Fixed by dropping the icon entirely and prefixing the label text with a literal `✓ ` character instead — simpler and immune to the platform-specific icon-sizing quirk. Applied the same fix to the Book Detail segmented control, which had the identical pattern.
+  2. **Tab bar label overlapping/not aligned with the focused pill.** React Navigation renders `tabBarIcon` and the tab label as separate elements, so a pill returned from `tabBarIcon` can never visually contain the label — and on short/wide viewports RN's tab bar auto-switches to a beside-icon layout, which was colliding with my pill. Fixed by setting `tabBarShowLabel: false` and building one custom `TabIcon` component that renders the pill-wrapped icon and the label together in a single centered column, so the two can never be laid out independently of each other again.
+- Fixed two more spacing issues from a follow-up round of feedback:
+  1. **Too much vertical space between the two stacked `FilterBar` rows on the Library screen.** Measured via `getBoundingClientRect()` in the browser rather than guessing from a screenshot — the two rows were actually flush (0px apart); each `FilterBar`'s horizontal `ScrollView` was independently flex-growing to ~100px tall (React Native Web's `ScrollView` defaults to `flexGrow: 1` inside a flex column parent) while its content was only ~44px, so the pill row sat vertically centered inside an oversized box. Fixed with `style={{ flexGrow: 0 }}` on the `ScrollView` itself (not the `contentContainerStyle`).
+  2. **Tab labels sitting flush against the bottom screen edge.** Added `pb-2` to the custom `TabIcon` wrapper.
+- Took fresh screenshots of all four main screens against the new theme and swapped them into `docs/screenshots/`, replacing the light-theme ones from the previous session; updated the README's "Design direction" section and styling row in the tech-stack table to describe the token system and confirm the theme is applied to the app, not just mocked up.
+
+**Design Decisions:**
+
+*Why measure the `FilterBar` spacing bug with `getBoundingClientRect()` instead of just eyeballing screenshots and guessing at a padding value?*
+The first instinct (reduce `contentContainerStyle`'s `paddingVertical`) would have shrunk the padding but left the actual bug untouched — the `ScrollView`'s outer box, not its content padding, was the oversized element. Screenshot-only debugging at different zoom levels/DPIs made the actual gap size ambiguous; a direct DOM measurement on the running web build gave an exact, unambiguous answer (rows were 0px apart, each box was ~100px vs ~44px of content) that pointed straight at the real fix.
+
+*Why drop the mockup's hexagon-clipped covers instead of implementing them with `react-native-svg`?*
+Explicit user instruction, given directly. The hexagon was a mockup-only motif (a nod to the Library of Babel) layered on top of the Material 3 direction, not a load-bearing part of it — keeping real book covers as plain rectangles avoids a new native dependency for a purely decorative shape.
+
+*Why a fully custom `TabIcon` instead of trying to style React Navigation's built-in label?*
+React Navigation's tab bar treats the icon (`tabBarIcon`) and the label (`tabBarLabel`/the default title-derived label) as independent, separately-positioned elements — there's no supported way to make a pill background returned from one also wrap the other. Rather than fight the library's responsive icon/label layout switching (which is what caused the original overlap), taking over both with `tabBarShowLabel: false` plus one component guarantees the pill and label are always laid out together, on every viewport.
+
+**Architecture state after this session:**
+```
+tailwind.config.js — structured Material 3 token set (accent/surface/ink/border/status),
+                     replacing the flat single `accent` hex from the previous session
+
+src/theme/colors.ts        — new: raw hex mirror of the Tailwind tokens for non-className usages
+src/components/M3TextField.tsx — new: shared M3 filled-text-field component
+
+Every screen now renders on the OLED-black Material 3 theme (previously only the accent
+color had changed; the light background/components were still the pre-redesign look).
+docs/screenshots/*.jpg regenerated to match.
+
+app.json: userInterfaceStyle "dark", splash/adaptive-icon background #000000 (was #fafaf9)
+```
+
+---
+
+### 2026-08-05 — Tab bar polish + scroll-collapsing filters (branch: design-material3)
+
+**What happened:**
+- Tab bar labels ("Reading"/"Library") bumped from 11px/500 weight to 13px/600 weight for better legibility.
+- Removed the hairline border between the tab bar and screen content (`borderTopWidth: 0` in `tabBarStyle`) so the bar flows into the content above it instead of being visually separated.
+- Library screen's two `FilterBar` rows now collapse out of view as the book list scrolls down and slide back in as it scrolls up — the standard "hide on scroll" pattern via `Animated.diffClamp`. The filter rows moved to an absolutely-positioned `Animated.View` on top of an `Animated.FlatList`, with the list's `contentContainerStyle.paddingTop` matching the filters' height so the first book sits directly below them at rest.
+- Verified the collapse behavior directly via `scrollTop`/`dispatchEvent('scroll')` in the browser console rather than fighting the browser-automation window resizer (which kept auto-expanding past the size needed to force list overflow) — confirmed the header hides by exactly its own height on scroll down, partially reveals proportionally on a partial scroll-up, and fully returns at scroll top.
+
+**Design Decisions:**
+
+*Why a hardcoded `FILTERS_HEIGHT` constant instead of measuring the filter section's actual height with `onLayout`?*
+`Animated.diffClamp`'s min/max bounds are fixed at creation and can't be updated after an async `onLayout` measurement without recreating the animated node (and handling the render-before-measurement gap). Since both `FilterBar` rows now have a fixed, deterministic height (`h-8` pill + fixed `paddingVertical` — no more content-dependent sizing after the earlier `flexGrow` fix), hardcoding the value that already exists in `FilterBar`'s own styling is simpler and avoids a layout-thrash/flash-of-wrong-position on mount.
+
+**Architecture state after this session:**
+```
+app/(tabs)/library.tsx — filters now render in an absolutely-positioned Animated.View
+  driven by Animated.diffClamp(scrollY, 0, FILTERS_HEIGHT); FlatList replaced with
+  Animated.FlatList wired to the same scrollY via onScroll (useNativeDriver: true).
+
+Tab bar: 13px/600 labels, no top border — otherwise unchanged from the previous session.
+```
+
+---
+
 <!-- TEMPLATE — copy this block to start a new session entry
 
 ### YYYY-MM-DD — Session Title
