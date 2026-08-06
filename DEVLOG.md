@@ -648,6 +648,38 @@ Tab bar: 13px/600 labels, no top border — otherwise unchanged from the previou
 
 ---
 
+### 2026-08-05 — Library search + fixed the filter/list gap bug (branch: search)
+
+**What happened:**
+- Added search to the Library screen: a toggle icon in the header opens a full-width search field (title or author, case-insensitive substring match), combining with the existing status filter and sort. The header's icons (search toggle + add) moved from `(tabs)/_layout.tsx`'s static `headerRight` into `library.tsx` itself via `useNavigation().setOptions()` in a `useLayoutEffect`, since the search toggle is this screen's own state and React Navigation's `headerRight` for a tab is otherwise only definable centrally in the layout.
+- Circled both header icons in a `bg-accent-container` tonal circle for contrast against the black header — initially gave search a neutral treatment and add an accent one, then made them match per direct feedback.
+- **Found and fixed the real cause of a "too much space between filters and the first book" bug** that survived several attempted padding-value fixes: `Animated.View`'s `className="absolute top-0 left-0 right-0 bg-surface"` was never actually applying `position: absolute` — checked via `getComputedStyle` in the browser and found `position: relative`. NativeWind's `className` support isn't wired up for `Animated.View` the way it is for plain `View` in this project's setup, so the "absolute" utility silently did nothing, leaving the filter overlay in normal document flow — pushing the `FlatList` down by the overlay's own height (88px) *in addition to* the `FlatList`'s own `paddingTop: 88` (reserved for exactly the floating-overlay case that wasn't actually happening), roughly doubling the gap. Fixed by moving the positioning (`position`, `top`/`left`/`right`, `backgroundColor`) onto the `style` prop instead of `className`, which isn't subject to that interop gap. No padding-value change was ever the right fix.
+- Also hit two false leads while debugging this: (1) suspected a stale Metro/browser cache, restarted the dev server with `--clear` and hard-reloaded — didn't fix it, ruled out; (2) `location.reload(true)`'s force-bypass-cache argument is a no-op in modern Chrome, a reminder that JS-triggered reloads aren't a substitute for an actual cache-busting reload when ruling out staleness.
+
+**Design Decisions:**
+
+*Why debug with `getComputedStyle()`/`getBoundingClientRect()` in the browser console instead of reasoning from the source and screenshots?*
+Three plausible-sounding theories (padding math, stale bundle, ScrollView flexGrow regression) were each individually reasonable and each turned out wrong or incomplete when checked. Screenshots show final paint, not why. Direct DOM inspection — checking what `position` a specific element actually computed to — found the real, non-obvious cause (a silent NativeWind/Animated interop gap) in one query, versus an unbounded number of "try a different number and reload" cycles.
+
+*Why move the header's search+add icons into `library.tsx` rather than lifting `searchOpen` state up into `(tabs)/_layout.tsx`?*
+The toggle button only needs to affect its own screen. Keeping the state and the header content that depends on it in the same file is simpler than introducing cross-file state (context or a store slice) for something with exactly one consumer.
+
+**Architecture state after this session:**
+```
+app/(tabs)/library.tsx — owns its own headerRight (search toggle + add button, both
+  circled bg-accent-container) via navigation.setOptions(); search query combines
+  with the existing status filter and sort, case-insensitive on title/author.
+
+app/(tabs)/_layout.tsx — library Tabs.Screen no longer sets a static headerRight.
+
+Collapsing-filters overlay now genuinely position: absolute (was silently
+position: relative due to a NativeWind/Animated.View className gap) — positioning
+props for Animated components in this codebase should go through style, not
+className, until/unless that interop gap is otherwise resolved.
+```
+
+---
+
 <!-- TEMPLATE — copy this block to start a new session entry
 
 ### YYYY-MM-DD — Session Title

@@ -1,5 +1,5 @@
-import { Tabs, useRouter } from 'expo-router';
-import { ColorValue, Pressable, Text, View } from 'react-native';
+import { Tabs } from 'expo-router';
+import { ColorValue, Text, View } from 'react-native';
 import { SymbolView, AndroidSymbol, SFSymbol } from 'expo-symbols';
 import { colors } from '@/src/theme/colors';
 
@@ -26,8 +26,6 @@ function TabIcon({ focused, color, label, ios, android, web }: TabIconProps) {
 }
 
 export default function TabLayout() {
-  const router = useRouter();
-
   return (
     <Tabs
       screenOptions={{
@@ -56,19 +54,8 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <TabIcon focused={focused} color={color} label="Library" ios="books.vertical.fill" android="shelves" web="library_books" />
           ),
-          headerRight: () => (
-            <Pressable
-              onPress={() => router.push('/add')}
-              style={{ marginRight: 16 }}
-              hitSlop={8}
-            >
-              <SymbolView
-                name={{ ios: 'plus', android: 'add', web: 'add' }}
-                tintColor={colors.accent.default}
-                size={26}
-              />
-            </Pressable>
-          ),
+          // headerRight is set dynamically by app/(tabs)/library.tsx itself,
+          // since it needs to react to that screen's own search-toggle state.
         }}
       />
     </Tabs>
