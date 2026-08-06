@@ -91,7 +91,7 @@ export default function AddBookScreen() {
           <Pressable
             onPress={handleSearch}
             disabled={phase === 'loading' || !isbnReady}
-            className={`py-3 rounded-xl items-center ${phase === 'loading' || !isbnReady ? 'bg-stone-200' : 'bg-amber-700'}`}
+            className={`py-3 rounded-xl items-center ${phase === 'loading' || !isbnReady ? 'bg-stone-200' : 'bg-accent'}`}
           >
             <Text className={`font-semibold text-base ${phase === 'loading' || !isbnReady ? 'text-stone-400' : 'text-white'}`}>
               {phase === 'loading' ? 'Searching…' : 'Search'}
@@ -116,7 +116,7 @@ export default function AddBookScreen() {
         {/* Loading */}
         {phase === 'loading' && (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#b45309" />
+            <ActivityIndicator size="large" color="#0061a4" />
           </View>
         )}
 
@@ -129,7 +129,7 @@ export default function AddBookScreen() {
             <Pressable
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               onPress={() => router.push({ pathname: '/manual-entry' as any, params: { isbn: cleanISBN(isbn) } })}
-              className="bg-amber-700 px-6 py-3 rounded-xl"
+              className="bg-accent px-6 py-3 rounded-xl"
             >
               <Text className="text-white font-semibold">Add Manually</Text>
             </Pressable>
@@ -146,7 +146,7 @@ export default function AddBookScreen() {
               Couldn't reach Open Library.{'\n'}Check your connection and try again.
             </Text>
             <Pressable onPress={() => setPhase('input')}>
-              <Text className="text-amber-700 font-semibold">Try again</Text>
+              <Text className="text-accent font-semibold">Try again</Text>
             </Pressable>
           </View>
         )}
@@ -184,7 +184,7 @@ export default function AddBookScreen() {
                   This book is already in your library.
                 </Text>
               )}
-              <Pressable onPress={handleAdd} className="bg-amber-700 py-3 rounded-xl items-center">
+              <Pressable onPress={handleAdd} className="bg-accent py-3 rounded-xl items-center">
                 <Text className="text-white font-semibold text-base">Add to Library</Text>
               </Pressable>
               <Pressable onPress={handleReset} className="py-3 items-center">

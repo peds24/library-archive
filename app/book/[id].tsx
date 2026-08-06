@@ -81,9 +81,15 @@ export default function BookDetailScreen() {
         </View>
 
         {/* Title & Author */}
-        <View className="px-6 pt-5 pb-4 border-b border-stone-100">
-          <Text className="text-stone-900 text-2xl font-bold leading-tight">{book.title}</Text>
-          <Text className="text-stone-500 text-base mt-1">{book.author}</Text>
+        <View className="px-6 pt-5 pb-4 border-b border-stone-100 gap-2">
+          <EditableTitleRow
+            value={book.title}
+            onSave={(v) => updateBook(book.id, { title: v })}
+          />
+          <EditableAuthorRow
+            value={book.author}
+            onSave={(v) => updateBook(book.id, { author: v })}
+          />
         </View>
 
         {/* Metadata */}
@@ -102,7 +108,16 @@ export default function BookDetailScreen() {
               if (n > 0) updateBook(book.id, { pages: n });
             }}
           />
-          <Row label="Published" value={book.publishedDate.slice(0, 4)} />
+          <EditableRow
+            label="Published"
+            value={book.publishedDate}
+            onSave={(v) => updateBook(book.id, { publishedDate: v })}
+          />
+          <EditableRow
+            label="Cover URL"
+            value={book.coverImage}
+            onSave={(v) => updateBook(book.id, { coverImage: v })}
+          />
           <Row label="Added" value={new Date(book.dateAdded).toLocaleDateString()} />
         </View>
 
@@ -130,6 +145,94 @@ export default function BookDetailScreen() {
         </View>
       </ScrollView>
     </>
+  );
+}
+
+function EditableTitleRow({ value, onSave }: { value: string; onSave: (v: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  function save() {
+    const trimmed = draft.trim();
+    if (trimmed && trimmed !== value) onSave(trimmed);
+    else if (!trimmed) setDraft(value);
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <TextInput
+        value={draft}
+        onChangeText={setDraft}
+        returnKeyType="done"
+        onSubmitEditing={save}
+        onBlur={save}
+        autoFocus
+        style={{
+          color: '#1c1917',
+          fontSize: 24,
+          fontWeight: 'bold',
+          lineHeight: 29,
+          borderBottomWidth: 1.5,
+          borderBottomColor: '#0061a4',
+          paddingBottom: 2,
+        }}
+      />
+    );
+  }
+
+  return (
+    <Pressable onPress={() => { setDraft(value); setEditing(true); }} className="flex-row items-center gap-1.5">
+      <Text className="text-stone-900 text-2xl font-bold leading-tight">{value}</Text>
+      <SymbolView
+        name={{ ios: 'pencil', android: 'edit', web: 'edit' }}
+        tintColor="#5b93c4"
+        size={14}
+      />
+    </Pressable>
+  );
+}
+
+function EditableAuthorRow({ value, onSave }: { value: string; onSave: (v: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  function save() {
+    const trimmed = draft.trim();
+    if (trimmed && trimmed !== value) onSave(trimmed);
+    else if (!trimmed) setDraft(value);
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <TextInput
+        value={draft}
+        onChangeText={setDraft}
+        returnKeyType="done"
+        onSubmitEditing={save}
+        onBlur={save}
+        autoFocus
+        style={{
+          color: '#78716c',
+          fontSize: 16,
+          borderBottomWidth: 1.5,
+          borderBottomColor: '#0061a4',
+          paddingBottom: 2,
+        }}
+      />
+    );
+  }
+
+  return (
+    <Pressable onPress={() => { setDraft(value); setEditing(true); }} className="flex-row items-center gap-1.5">
+      <Text className="text-stone-500 text-base">{value}</Text>
+      <SymbolView
+        name={{ ios: 'pencil', android: 'edit', web: 'edit' }}
+        tintColor="#5b93c4"
+        size={12}
+      />
+    </Pressable>
   );
 }
 
@@ -181,7 +284,7 @@ function EditableRow({
             fontWeight: '500',
             textAlign: 'right',
             borderBottomWidth: 1.5,
-            borderBottomColor: '#b45309',
+            borderBottomColor: '#0061a4',
             minWidth: 80,
             paddingBottom: 2,
           }}
@@ -200,7 +303,7 @@ function EditableRow({
         <Text className="text-stone-700 text-sm font-medium">{value}</Text>
         <SymbolView
           name={{ ios: 'pencil', android: 'edit', web: 'edit' }}
-          tintColor="#d4a058"
+          tintColor="#5b93c4"
           size={12}
         />
       </View>

@@ -45,7 +45,7 @@ export default function ScanScreen() {
           <Text className="text-stone-500 text-base text-center">
             Allow camera access to scan barcodes on your books.
           </Text>
-          <Pressable onPress={requestPermission} className="bg-amber-700 px-6 py-3 rounded-xl">
+          <Pressable onPress={requestPermission} className="bg-accent px-6 py-3 rounded-xl">
             <Text className="text-white font-semibold text-base">Allow Camera</Text>
           </Pressable>
         </View>
@@ -108,7 +108,7 @@ export default function ScanScreen() {
           title: isBulk && bulkQueue.length > 0 ? `Scanning — ${bulkQueue.length} queued` : 'Scan Book',
           headerRight: () => (
             <Pressable onPress={() => setIsBulk((v) => !v)} style={{ marginRight: 16 }}>
-              <Text style={{ color: isBulk ? '#fbbf24' : 'rgba(255,255,255,0.5)', fontWeight: '600', fontSize: 14 }}>
+              <Text style={{ color: isBulk ? '#60a5fa' : 'rgba(255,255,255,0.5)', fontWeight: '600', fontSize: 14 }}>
                 Bulk
               </Text>
             </Pressable>
@@ -138,7 +138,7 @@ export default function ScanScreen() {
         {/* Fetching overlay */}
         {phase === 'fetching' && (
           <View style={StyleSheet.absoluteFill} className="items-center justify-center bg-black/60">
-            <ActivityIndicator size="large" color="#f59e0b" />
+            <ActivityIndicator size="large" color="#60a5fa" />
             <Text className="text-white/70 text-sm mt-3">Looking up book…</Text>
           </View>
         )}
@@ -146,8 +146,8 @@ export default function ScanScreen() {
         {/* Confirm all bar — shown while camera is active in bulk mode */}
         {isBulk && bulkQueue.length > 0 && cameraActive && (
           <View className="absolute bottom-0 left-0 right-0 px-5 pb-8 pt-4 bg-black/70">
-            <Pressable onPress={handleConfirmAll} className="bg-amber-500 py-3 rounded-xl items-center">
-              <Text className="text-black font-bold text-base">
+            <Pressable onPress={handleConfirmAll} className="bg-accent py-3 rounded-xl items-center">
+              <Text className="text-white font-bold text-base">
                 Confirm All · {bulkQueue.length} {bulkQueue.length === 1 ? 'book' : 'books'}
               </Text>
             </Pressable>
@@ -179,7 +179,7 @@ export default function ScanScreen() {
 
             {/* Duplicate notice */}
             {phase === 'duplicate' && (
-              <Text className="text-amber-700 text-sm text-center font-medium">
+              <Text className="text-accent text-sm text-center font-medium">
                 Already in your library{isBulk && bulkQueue.length > 0 ? ' or scan queue' : ''}.
               </Text>
             )}
@@ -209,7 +209,7 @@ export default function ScanScreen() {
               <View className="gap-2">
                 <Pressable
                   onPress={isBulk ? handleAddToQueue : handleAddSingle}
-                  className="bg-amber-700 py-3 rounded-xl items-center"
+                  className="bg-accent py-3 rounded-xl items-center"
                 >
                   <Text className="text-white font-semibold text-base">
                     {isBulk ? 'Add to Queue' : 'Add to Library'}
@@ -234,7 +234,7 @@ export default function ScanScreen() {
                 <Pressable
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   onPress={() => router.push({ pathname: '/manual-entry' as any, params: { isbn: lastIsbn } })}
-                  className="bg-amber-700 py-3 rounded-xl items-center"
+                  className="bg-accent py-3 rounded-xl items-center"
                 >
                   <Text className="text-white font-semibold">Add Manually</Text>
                 </Pressable>

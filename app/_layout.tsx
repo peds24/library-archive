@@ -19,7 +19,7 @@ export default function RootLayout() {
   const headerBase = {
     headerStyle: { backgroundColor: '#fafaf9' },
     headerShadowVisible: false,
-    headerTintColor: '#b45309',
+    headerTintColor: '#0061a4',
     headerTitleStyle: { color: '#1c1917', fontWeight: '600' as const, fontSize: 16 },
   };
 
