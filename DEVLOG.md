@@ -624,6 +624,30 @@ app.json: userInterfaceStyle "dark", splash/adaptive-icon background #000000 (wa
 
 ---
 
+### 2026-08-05 — Tab bar polish + scroll-collapsing filters (branch: design-material3)
+
+**What happened:**
+- Tab bar labels ("Reading"/"Library") bumped from 11px/500 weight to 13px/600 weight for better legibility.
+- Removed the hairline border between the tab bar and screen content (`borderTopWidth: 0` in `tabBarStyle`) so the bar flows into the content above it instead of being visually separated.
+- Library screen's two `FilterBar` rows now collapse out of view as the book list scrolls down and slide back in as it scrolls up — the standard "hide on scroll" pattern via `Animated.diffClamp`. The filter rows moved to an absolutely-positioned `Animated.View` on top of an `Animated.FlatList`, with the list's `contentContainerStyle.paddingTop` matching the filters' height so the first book sits directly below them at rest.
+- Verified the collapse behavior directly via `scrollTop`/`dispatchEvent('scroll')` in the browser console rather than fighting the browser-automation window resizer (which kept auto-expanding past the size needed to force list overflow) — confirmed the header hides by exactly its own height on scroll down, partially reveals proportionally on a partial scroll-up, and fully returns at scroll top.
+
+**Design Decisions:**
+
+*Why a hardcoded `FILTERS_HEIGHT` constant instead of measuring the filter section's actual height with `onLayout`?*
+`Animated.diffClamp`'s min/max bounds are fixed at creation and can't be updated after an async `onLayout` measurement without recreating the animated node (and handling the render-before-measurement gap). Since both `FilterBar` rows now have a fixed, deterministic height (`h-8` pill + fixed `paddingVertical` — no more content-dependent sizing after the earlier `flexGrow` fix), hardcoding the value that already exists in `FilterBar`'s own styling is simpler and avoids a layout-thrash/flash-of-wrong-position on mount.
+
+**Architecture state after this session:**
+```
+app/(tabs)/library.tsx — filters now render in an absolutely-positioned Animated.View
+  driven by Animated.diffClamp(scrollY, 0, FILTERS_HEIGHT); FlatList replaced with
+  Animated.FlatList wired to the same scrollY via onScroll (useNativeDriver: true).
+
+Tab bar: 13px/600 labels, no top border — otherwise unchanged from the previous session.
+```
+
+---
+
 <!-- TEMPLATE — copy this block to start a new session entry
 
 ### YYYY-MM-DD — Session Title

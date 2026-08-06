@@ -20,7 +20,7 @@ function TabIcon({ focused, color, label, ios, android, web }: TabIconProps) {
       <View className={`w-12 h-7 items-center justify-center rounded-full ${focused ? 'bg-accent-container' : ''}`}>
         <SymbolView name={{ ios, android, web }} tintColor={color} size={22} />
       </View>
-      <Text style={{ color, fontSize: 11, fontWeight: '500' }}>{label}</Text>
+      <Text style={{ color, fontSize: 13, fontWeight: '600' }}>{label}</Text>
     </View>
   );
 }
@@ -34,7 +34,7 @@ export default function TabLayout() {
         tabBarShowLabel: false,
         tabBarActiveTintColor: colors.accent.onContainer,
         tabBarInactiveTintColor: colors.ink.muted,
-        tabBarStyle: { backgroundColor: colors.surface.default, borderTopColor: colors.border },
+        tabBarStyle: { backgroundColor: colors.surface.default, borderTopWidth: 0 },
         headerStyle: { backgroundColor: colors.surface.default },
         headerShadowVisible: false,
         headerTitleStyle: { color: colors.ink.default, fontWeight: '600', fontSize: 18 },
