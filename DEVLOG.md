@@ -923,6 +923,65 @@ Config:
 
 ---
 
+### 2026-08-06 — Landing page small-viewport support + responsiveness promoted to a skill requirement (branch: main)
+
+**What happened:**
+
+- Added tablet (`max-width: 1024px`) and phone (`max-width: 640px`) breakpoints to `docs/index.html`. The page previously had only two narrow-width rules, both scoped to the `.phones` screenshot grid; everything else — page gutters, section rhythm, CTA layout, footer — held its desktop values all the way down to 320px.
+- Replaced the hardcoded `.page` padding/gap with three custom properties on `:root` (`--gutter`, `--section-y`, `--page-top`). Each breakpoint now redefines just those three values instead of restating every padding it wants to change.
+- Page gutters now use `max(var(--gutter), env(safe-area-inset-left/right))` so content clears the notch/rounded corners in landscape.
+- Converted `.lede` and `.section-title` from fixed `rem` sizes to `clamp()`. `h1` already used `clamp()`.
+- Phone breakpoint: CTAs go full-width, `.btn` gets `min-height: 44px`, the theme toggle grows 40px → 44px, the footer stacks, and `.phase-row` switches to `align-items: flex-start` so the check icon stays on the first line when a phase label wraps.
+- Retuned the `.phones` grid breakpoints: 4-up → 2-up at 1024px (was 980px) → 1-up at 560px (was 520px).
+- Added `-webkit-text-size-adjust: 100%` to `body`.
+- Rewrote section 5 of the `project-landing-page` skill (`~/.claude/skills/`) as "Small viewports are part of the deliverable," making the three-size scale a stated requirement rather than a one-line "Responsive" bullet.
+
+**Design Decisions:**
+
+*Why spacing custom properties instead of restating paddings per breakpoint?*
+The page has one container (`.page`) carrying both the horizontal gutter and the vertical section rhythm, and both need to shrink together at each size. Restating `padding: 1.25rem 1.125rem 3.5rem; gap: 3rem` in every media query means the desktop value and its two overrides live in three places, and the next person to adjust desktop spacing changes one of them. Three tokens redefined in a one-line `:root` block per breakpoint makes the whole page rescale from a single edit, and makes the *ratio* between sizes legible at a glance (1.75rem → 1.5rem → 1.125rem).
+
+*Why `clamp()` on the lede and section titles rather than a font size per breakpoint?*
+A fixed size per breakpoint snaps at the boundary — 1.25rem at 1025px and 1.125rem at 1024px — and leaves every width in between looking like it was designed for a different one. `clamp()` interpolates continuously across the whole tablet range, which is exactly where this page has the most in-between widths. The lower bound on `.lede` is 1.0625rem (17px), deliberately above 16px so body copy never drops below comfortable reading size on a phone.
+
+*Why 640px for the phone breakpoint but 560px for the screenshot grid?*
+They answer different questions. 640px is where the page's *layout* stops having room for side-by-side anything, so gutters, CTAs, and the footer collapse there. The screenshot grid holds 2 columns usefully a bit further down — two 9:16 phone frames at ~270px each still read fine at 600px — so forcing it to 1 column at 640 would waste a whole viewport of vertical space for no gain. Dropping it at 560 keeps two columns as long as they're legible.
+
+*Why cap the single-column screenshot grid at 300px wide?*
+Without a `max-width` a phone screenshot in a 1-column grid stretches to the full container — a 358px-wide render of a 500x862 screen, which is both larger than the actual device and taller than the viewport. 300px with `margin: 0 auto` keeps the device frame at a believable size and centered.
+
+*Why 44px touch targets when the buttons already looked tappable?*
+The primary CTA was `0.85rem` vertical padding on `0.9rem` text, which computes to about 41px — under the platform minimum on both iOS and Android, and this page's whole audience is people opening a phone-app link on a phone. `min-height: 44px` on `.btn` costs nothing at desktop (the padding already exceeds it there) and only takes effect where it matters.
+
+*Why no hamburger/collapsed nav?*
+There's nothing to collapse. The top bar is a brand mark and a theme toggle — no section links — so the phone treatment is just growing the toggle to a real touch target. Adding nav machinery for two elements would be inventing a problem.
+
+*Verification approach — why an iframe probe rather than screenshots alone?*
+Headless Chrome's `--window-size` doesn't reliably drive the layout viewport for `--screenshot`; the first 390px render came back with text clipped at the right edge, which looked like real overflow and wasn't. Loading the page into an explicitly sized `<iframe>` and reading `documentElement.scrollWidth` vs `clientWidth` measures the actual layout, and also names the widest offending element when there is one. Result: no horizontal overflow at 360/390/414/560/640/768/1024/1180/1440. Screenshots were then taken through the same iframe so they reflect the real layout.
+
+**Architecture state after this session:**
+```
+docs/index.html  — single self-contained file, no build step, GitHub Pages source.
+
+  Theme tokens   :root (dark default)
+                 + @media (prefers-color-scheme: light) :root:not([data-theme="dark"])
+                 + :root[data-theme="light"] / :root[data-theme="dark"]  (JS toggle)
+
+  Spacing tokens :root  --gutter / --section-y / --page-top
+                 consumed only by .page; redefined per breakpoint.
+
+  Breakpoints    (max-width: 1024px)  tablet — tokens step down, .phones 4->2
+                 (max-width:  640px)  phone  — tokens step down, CTAs full-width,
+                                               44px targets, footer stacks
+                 (max-width:  560px)  .phones 2->1, capped at 300px, centered
+
+  Fluid type     h1 / .lede / .section-title all clamp(); no per-breakpoint sizes.
+
+Verified: no horizontal overflow at 360-1440. Desktop layout unchanged.
+```
+
+---
+
 <!-- TEMPLATE — copy this block to start a new session entry
 
 ### YYYY-MM-DD — Session Title
