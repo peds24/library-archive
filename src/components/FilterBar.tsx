@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, Text } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Colors, FontSize, FontWeight, Radius, Spacing } from '@/src/theme';
 
 interface FilterOption<T extends string> {
   label: string;
@@ -16,8 +17,8 @@ export default function FilterBar<T extends string>({ filters, active, onSelect 
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      style={{ flexGrow: 0 }}
-      contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 6, gap: 8, flexDirection: 'row', alignItems: 'center' }}
+      style={styles.scroll}
+      contentContainerStyle={styles.row}
     >
       {filters.map((f) => {
         const isActive = f.value === active;
@@ -25,11 +26,9 @@ export default function FilterBar<T extends string>({ filters, active, onSelect 
           <Pressable
             key={f.value}
             onPress={() => onSelect(f.value)}
-            className={`h-9 px-3.5 items-center justify-center rounded-full border ${
-              isActive ? 'bg-accent-container border-transparent' : 'bg-surface border-border'
-            }`}
+            style={[styles.pill, isActive ? styles.pillActive : styles.pillIdle]}
           >
-            <Text className={`text-base font-medium ${isActive ? 'text-accent-on-container' : 'text-ink-muted'}`}>
+            <Text style={[styles.label, isActive ? styles.labelActive : styles.labelIdle]}>
               {isActive ? `✓ ${f.label}` : f.label}
             </Text>
           </Pressable>
@@ -38,3 +37,29 @@ export default function FilterBar<T extends string>({ filters, active, onSelect 
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  scroll: { flexGrow: 0 },
+  row: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 6,
+    gap: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  // Height is fixed at 36 because app/(tabs)/library.tsx measures this row to size
+  // the collapsing filter header — see FILTER_ROW_HEIGHT there.
+  pill: {
+    height: 36,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radius.full,
+    borderWidth: 1,
+  },
+  pillActive: { backgroundColor: Colors.accent.container, borderColor: 'transparent' },
+  pillIdle: { backgroundColor: Colors.surface.default, borderColor: Colors.border },
+  label: { fontSize: FontSize.base, fontWeight: FontWeight.medium },
+  labelActive: { color: Colors.accent.onContainer },
+  labelIdle: { color: Colors.ink.muted },
+});

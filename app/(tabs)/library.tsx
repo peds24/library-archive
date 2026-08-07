@@ -1,11 +1,12 @@
 import { useNavigation, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useLayoutEffect, useRef, useState } from 'react';
-import { Animated, Pressable, TextInput, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import BookCard from '@/src/components/BookCard';
 import FilterBar from '@/src/components/FilterBar';
 import { useBookStore } from '@/src/store/bookStore';
-import { colors } from '@/src/theme/colors';
+import { Colors, FontSize, Radius, Spacing } from '@/src/theme';
+import { CommonStyles } from '@/src/theme/common';
 import { BookStatus } from '@/src/types/book';
 
 type FilterOption = 'all' | BookStatus;
@@ -25,7 +26,7 @@ const SORT_OPTIONS: { label: string; value: SortOption }[] = [
   { label: 'Z–A', value: 'za' },
 ];
 
-// Matches FilterBar's fixed row height: h-9 (36px) pill + 6px top/bottom padding.
+// Matches FilterBar's fixed row: a 36px pill plus 6px of padding top and bottom.
 const FILTER_ROW_HEIGHT = 48;
 const FILTERS_HEIGHT = FILTER_ROW_HEIGHT * 2;
 
@@ -43,14 +44,14 @@ export default function LibraryScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <View className="flex-row items-center gap-3" style={{ marginRight: 16 }}>
+        <View style={styles.headerActions}>
           <Pressable
             onPress={() => {
               if (searchOpen) setQuery('');
               setSearchOpen((v) => !v);
             }}
             hitSlop={8}
-            className="w-9 h-9 items-center justify-center rounded-full bg-accent-container"
+            style={styles.headerButton}
           >
             <SymbolView
               name={{
@@ -58,18 +59,14 @@ export default function LibraryScreen() {
                 android: searchOpen ? 'close' : 'search',
                 web: searchOpen ? 'close' : 'search',
               }}
-              tintColor={colors.accent.onContainer}
+              tintColor={Colors.accent.onContainer}
               size={18}
             />
           </Pressable>
-          <Pressable
-            onPress={() => router.push('/add')}
-            hitSlop={8}
-            className="w-9 h-9 items-center justify-center rounded-full bg-accent-container"
-          >
+          <Pressable onPress={() => router.push('/add')} hitSlop={8} style={styles.headerButton}>
             <SymbolView
               name={{ ios: 'plus', android: 'add', web: 'add' }}
-              tintColor={colors.accent.onContainer}
+              tintColor={Colors.accent.onContainer}
               size={22}
             />
           </Pressable>
@@ -97,45 +94,37 @@ export default function LibraryScreen() {
     });
 
   return (
-    <View className="flex-1 bg-surface">
+    <View style={CommonStyles.screen}>
       {searchOpen && (
-        <View className="flex-row items-center gap-2 mx-4 mt-3 mb-1 px-3 h-11 rounded-full bg-surface-2 border-2 border-accent">
+        <View style={styles.searchBar}>
           <SymbolView
             name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }}
-            tintColor={colors.accent.default}
+            tintColor={Colors.accent.default}
             size={16}
           />
           <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder="Search by title or author"
-            placeholderTextColor={colors.ink.faint}
+            placeholderTextColor={Colors.ink.faint}
             autoFocus
             returnKeyType="search"
-            className="flex-1 text-ink text-base p-0"
+            style={styles.searchInput}
           />
           {query.length > 0 && (
             <Pressable onPress={() => setQuery('')} hitSlop={8}>
               <SymbolView
                 name={{ ios: 'xmark.circle.fill', android: 'cancel', web: 'cancel' }}
-                tintColor={colors.ink.faint}
+                tintColor={Colors.ink.faint}
                 size={16}
               />
             </Pressable>
           )}
         </View>
       )}
-      <View className="flex-1">
+      <View style={styles.listArea}>
         <Animated.View
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 10,
-            backgroundColor: colors.surface.default,
-            transform: [{ translateY: filtersTranslateY }],
-          }}
+          style={[styles.filters, { transform: [{ translateY: filtersTranslateY }] }]}
         >
           <FilterBar filters={STATUS_FILTERS} active={filter} onSelect={setFilter} />
           <FilterBar filters={SORT_OPTIONS} active={sort} onSelect={setSort} />
@@ -143,7 +132,7 @@ export default function LibraryScreen() {
         <Animated.FlatList
           data={displayed}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: FILTERS_HEIGHT, paddingBottom: 12, gap: 10 }}
+          contentContainerStyle={styles.list}
           onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
             useNativeDriver: true,
           })}
@@ -161,3 +150,52 @@ export default function LibraryScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginRight: Spacing.lg,
+  },
+  headerButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radius.full,
+    backgroundColor: Colors.accent.container,
+  },
+
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    height: 44,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.surface.raised,
+    borderWidth: 2,
+    borderColor: Colors.accent.default,
+  },
+  searchInput: { flex: 1, color: Colors.ink.default, fontSize: FontSize.base, padding: 0 },
+
+  listArea: { flex: 1 },
+  filters: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    backgroundColor: Colors.surface.default,
+  },
+  list: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: FILTERS_HEIGHT,
+    paddingBottom: Spacing.md,
+    gap: 10,
+  },
+});

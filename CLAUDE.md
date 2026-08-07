@@ -18,7 +18,7 @@ npx tsc --noEmit        # Type-check without emitting
 
 ## Architecture
 
-**Stack:** React Native + Expo (managed workflow), TypeScript, Expo Router (file-based routing), NativeWind (Tailwind for RN), Zustand, `expo-sqlite`, `expo-camera`.
+**Stack:** React Native + Expo (managed workflow), TypeScript, Expo Router (file-based routing), `StyleSheet` + design tokens, Zustand, `expo-sqlite`, `expo-camera`.
 
 **Routing (Expo Router):** File-based. Screens live under `app/`. The views are:
 - `app/(tabs)/index.tsx` — Currently Reading
@@ -36,9 +36,14 @@ npx tsc --noEmit        # Type-check without emitting
 - `src/store/bookStore.ts` — Zustand store
 - `src/types/book.ts` — canonical `Book` interface and `BookStatus` type
 - `src/data/mock-books.json` — seed data (5 books covering all statuses)
+- `src/theme/` — `index.ts` (design tokens), `common.ts` (styles shared by 2+ screens)
 - `docs/` — planning docs (`PROJECT_PLAN.md`, `TECH_STACK.md`, `brainstorm.md`)
 
-**NativeWind:** `global.css` is imported in `app/_layout.tsx`. Tailwind classes apply directly via `className` on React Native core components. Full class strings must appear literally in source (no dynamic string concatenation) so the Tailwind scanner picks them up — use lookup objects keyed by status/variant instead.
+**Styling:** Plain React Native `StyleSheet`, with every value coming from `src/theme/index.ts` (`Colors`, `Spacing`, `Radius`, `FontSize`, `FontWeight`, `LetterSpacing`). Never write a raw color or font size in a component — add a token instead, so a palette change stays a one-file change. Off-scale one-offs (a 56px cover, a 6px gap) are fine as literals in the component's own `StyleSheet`.
+
+Styles used by two or more screens live in `src/theme/common.ts` as `CommonStyles` — screen shells, the filled/outlined pill buttons, the inline warning text. A style used by exactly one screen stays in that screen's `StyleSheet` at the bottom of the file.
+
+There is no NativeWind, Tailwind, `global.css`, or `babel.config.js`; `className` is not available on any component. The project ran on NativeWind through 2026-08-07 — see the DEVLOG entry for that date if you find stale references to it.
 
 **State (Zustand):** A single store holds the books array in memory. On startup, it hydrates from SQLite. Every status update and new book addition writes back to SQLite immediately.
 

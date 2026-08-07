@@ -1,7 +1,9 @@
 import { useRouter } from 'expo-router';
-import { FlatList, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import BookCard from '@/src/components/BookCard';
 import { useBookStore } from '@/src/store/bookStore';
+import { Colors, FontSize, Spacing } from '@/src/theme';
+import { CommonStyles } from '@/src/theme/common';
 
 export default function CurrentlyReadingScreen() {
   const router = useRouter();
@@ -9,11 +11,11 @@ export default function CurrentlyReadingScreen() {
   const readingBooks = books.filter((b) => b.status === 'reading');
 
   return (
-    <View className="flex-1 bg-surface">
+    <View style={CommonStyles.screen}>
       <FlatList
         data={readingBooks}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 20, gap: 12 }}
+        contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <BookCard
             book={item}
@@ -22,11 +24,17 @@ export default function CurrentlyReadingScreen() {
           />
         )}
         ListEmptyComponent={
-          <View className="items-center justify-center py-24">
-            <Text className="text-ink-faint text-base">Nothing being read right now.</Text>
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>Nothing being read right now.</Text>
           </View>
         }
       />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  list: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.xl, gap: Spacing.md },
+  empty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 96 },
+  emptyText: { color: Colors.ink.faint, fontSize: FontSize.base },
+});

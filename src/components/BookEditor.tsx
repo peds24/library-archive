@@ -1,7 +1,7 @@
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { Image, Pressable, Text, TextInput, View } from 'react-native';
-import { colors } from '@/src/theme/colors';
+import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Colors, FontSize, FontWeight, LetterSpacing, Radius, Spacing } from '@/src/theme';
 import { Book, BookStatus } from '@/src/types/book';
 
 const STATUSES: { value: BookStatus; label: string }[] = [
@@ -10,6 +10,8 @@ const STATUSES: { value: BookStatus; label: string }[] = [
   { value: 'read', label: 'Read' },
   { value: 'shelved', label: 'Shelved' },
 ];
+
+const PENCIL = { ios: 'pencil', android: 'edit', web: 'edit' } as const;
 
 /**
  * The editable "book view" — cover, tap-to-edit fields, status picker.
@@ -32,28 +34,24 @@ export default function BookEditor({
   return (
     <>
       {/* Cover */}
-      <View className="items-center pt-8 pb-6 border-b border-border">
+      <View style={styles.coverSection}>
         {book.coverImage ? (
-          <Image
-            source={{ uri: book.coverImage }}
-            className="w-36 h-52 rounded-xl bg-surface-2"
-            resizeMode="cover"
-          />
+          <Image source={{ uri: book.coverImage }} style={styles.cover} resizeMode="cover" />
         ) : (
-          <View className="w-36 h-52 rounded-xl bg-surface-2 items-center justify-center">
-            <Text className="text-ink-faint text-sm">No cover</Text>
+          <View style={[styles.cover, styles.coverEmpty]}>
+            <Text style={styles.coverEmptyText}>No cover</Text>
           </View>
         )}
       </View>
 
       {/* Title & Author */}
-      <View className="px-6 pt-5 pb-4 border-b border-border gap-2">
+      <View style={styles.headingSection}>
         <EditableTitleRow value={book.title} onSave={(v) => onChange({ title: v })} />
         <EditableAuthorRow value={book.author} onSave={(v) => onChange({ author: v })} />
       </View>
 
       {/* Stats */}
-      <View className="px-6 py-4 border-b border-border flex-row gap-3">
+      <View style={styles.statsSection}>
         <StatTile
           label="pages"
           value={String(book.pages)}
@@ -71,7 +69,7 @@ export default function BookEditor({
       </View>
 
       {/* Metadata */}
-      <View className="px-6 py-4 gap-4 border-b border-border">
+      <View style={styles.metaSection}>
         <EditableRow label="Genre" value={book.genre} onSave={(v) => onChange({ genre: v })} />
         <EditableRow
           label="Cover URL"
@@ -84,21 +82,22 @@ export default function BookEditor({
       </View>
 
       {/* Status Picker */}
-      <View className="px-6 pt-5">
-        <Text className="text-ink-faint text-xs font-semibold uppercase tracking-widest mb-3">
-          Status
-        </Text>
-        <View className="flex-row border border-border rounded-full overflow-hidden">
+      <View style={styles.statusSection}>
+        <Text style={styles.statusHeading}>Status</Text>
+        <View style={styles.statusGroup}>
           {STATUSES.map((s, i) => {
             const isActive = book.status === s.value;
             return (
               <Pressable
                 key={s.value}
                 onPress={() => onChange({ status: s.value })}
-                className={`flex-1 h-9 items-center justify-center ${isActive ? 'bg-accent-container' : ''}`}
-                style={i < STATUSES.length - 1 ? { borderRightWidth: 1, borderRightColor: colors.border } : undefined}
+                style={[
+                  styles.statusOption,
+                  isActive && styles.statusOptionActive,
+                  i < STATUSES.length - 1 && styles.statusDivider,
+                ]}
               >
-                <Text className={`text-[11px] font-medium ${isActive ? 'text-accent-on-container' : 'text-ink-muted'}`}>
+                <Text style={[styles.statusLabel, isActive ? styles.statusLabelActive : styles.statusLabelIdle]}>
                   {isActive ? `✓ ${s.label}` : s.label}
                 </Text>
               </Pressable>
@@ -133,7 +132,7 @@ function StatTile({
 
   if (editing) {
     return (
-      <View className="flex-1 bg-accent-container rounded-2xl p-3 items-center">
+      <View style={styles.statTile}>
         <TextInput
           value={draft}
           onChangeText={setDraft}
@@ -142,26 +141,19 @@ function StatTile({
           onSubmitEditing={save}
           onBlur={save}
           autoFocus
-          style={{ color: colors.accent.onContainer, fontSize: 20, fontWeight: 'bold', textAlign: 'center', padding: 0 }}
+          style={styles.statTileInput}
         />
-        <Text className="text-[11px] text-ink-muted mt-0.5">{label}</Text>
+        <Text style={styles.statTileLabel}>{label}</Text>
       </View>
     );
   }
 
   return (
-    <Pressable
-      onPress={() => { setDraft(value); setEditing(true); }}
-      className="flex-1 bg-accent-container rounded-2xl p-3 items-center"
-    >
-      <Text
-        className="text-xl font-bold text-accent-on-container"
-        numberOfLines={1}
-        adjustsFontSizeToFit
-      >
+    <Pressable onPress={() => { setDraft(value); setEditing(true); }} style={styles.statTile}>
+      <Text style={styles.statTileValue} numberOfLines={1} adjustsFontSizeToFit>
         {value}
       </Text>
-      <Text className="text-[11px] text-ink-muted mt-0.5">{label}</Text>
+      <Text style={styles.statTileLabel}>{label}</Text>
     </Pressable>
   );
 }
@@ -186,27 +178,15 @@ function EditableTitleRow({ value, onSave }: { value: string; onSave: (v: string
         onSubmitEditing={save}
         onBlur={save}
         autoFocus
-        style={{
-          color: colors.ink.default,
-          fontSize: 24,
-          fontWeight: 'bold',
-          lineHeight: 29,
-          borderBottomWidth: 1.5,
-          borderBottomColor: colors.accent.default,
-          paddingBottom: 2,
-        }}
+        style={styles.titleInput}
       />
     );
   }
 
   return (
-    <Pressable onPress={() => { setDraft(value); setEditing(true); }} className="flex-row items-center gap-1.5">
-      <Text className="text-ink text-2xl font-bold leading-tight">{value}</Text>
-      <SymbolView
-        name={{ ios: 'pencil', android: 'edit', web: 'edit' }}
-        tintColor={colors.ink.faint}
-        size={14}
-      />
+    <Pressable onPress={() => { setDraft(value); setEditing(true); }} style={styles.tapRow}>
+      <Text style={styles.title}>{value}</Text>
+      <SymbolView name={PENCIL} tintColor={Colors.ink.faint} size={14} />
     </Pressable>
   );
 }
@@ -231,34 +211,24 @@ function EditableAuthorRow({ value, onSave }: { value: string; onSave: (v: strin
         onSubmitEditing={save}
         onBlur={save}
         autoFocus
-        style={{
-          color: colors.ink.muted,
-          fontSize: 16,
-          borderBottomWidth: 1.5,
-          borderBottomColor: colors.accent.default,
-          paddingBottom: 2,
-        }}
+        style={styles.authorInput}
       />
     );
   }
 
   return (
-    <Pressable onPress={() => { setDraft(value); setEditing(true); }} className="flex-row items-center gap-1.5">
-      <Text className="text-ink-muted text-base">{value}</Text>
-      <SymbolView
-        name={{ ios: 'pencil', android: 'edit', web: 'edit' }}
-        tintColor={colors.ink.faint}
-        size={12}
-      />
+    <Pressable onPress={() => { setDraft(value); setEditing(true); }} style={styles.tapRow}>
+      <Text style={styles.author}>{value}</Text>
+      <SymbolView name={PENCIL} tintColor={Colors.ink.faint} size={12} />
     </Pressable>
   );
 }
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <View className="flex-row justify-between">
-      <Text className="text-ink-faint text-sm">{label}</Text>
-      <Text className="text-ink text-sm font-medium">{value}</Text>
+    <View style={styles.row}>
+      <Text style={styles.rowLabel}>{label}</Text>
+      <Text style={styles.rowValue}>{value}</Text>
     </View>
   );
 }
@@ -286,8 +256,8 @@ function EditableRow({
 
   if (editing) {
     return (
-      <View className="flex-row justify-between items-center">
-        <Text className="text-ink-faint text-sm">{label}</Text>
+      <View style={styles.rowCentered}>
+        <Text style={styles.rowLabel}>{label}</Text>
         <TextInput
           value={draft}
           onChangeText={setDraft}
@@ -296,35 +266,142 @@ function EditableRow({
           onSubmitEditing={save}
           onBlur={save}
           autoFocus
-          style={{
-            color: colors.ink.muted,
-            fontSize: 14,
-            fontWeight: '500',
-            textAlign: 'right',
-            borderBottomWidth: 1.5,
-            borderBottomColor: colors.accent.default,
-            minWidth: 80,
-            paddingBottom: 2,
-          }}
+          style={styles.rowInput}
         />
       </View>
     );
   }
 
   return (
-    <Pressable
-      onPress={() => { setDraft(value); setEditing(true); }}
-      className="flex-row justify-between items-center"
-    >
-      <Text className="text-ink-faint text-sm">{label}</Text>
-      <View className="flex-row items-center gap-1.5">
-        <Text className="text-ink text-sm font-medium">{value}</Text>
-        <SymbolView
-          name={{ ios: 'pencil', android: 'edit', web: 'edit' }}
-          tintColor={colors.ink.faint}
-          size={12}
-        />
+    <Pressable onPress={() => { setDraft(value); setEditing(true); }} style={styles.rowCentered}>
+      <Text style={styles.rowLabel}>{label}</Text>
+      <View style={styles.tapRow}>
+        <Text style={styles.rowValue}>{value}</Text>
+        <SymbolView name={PENCIL} tintColor={Colors.ink.faint} size={12} />
       </View>
     </Pressable>
   );
 }
+
+// The accent underline every inline editor grows while focused, so the four of
+// them cannot drift apart.
+const editingUnderline = {
+  borderBottomWidth: 1.5,
+  borderBottomColor: Colors.accent.default,
+  paddingBottom: 2,
+} as const;
+
+const styles = StyleSheet.create({
+  coverSection: {
+    alignItems: 'center',
+    paddingTop: Spacing.xxxl,
+    paddingBottom: Spacing.xxl,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  cover: {
+    width: 144,
+    height: 208,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surface.raised,
+  },
+  coverEmpty: { alignItems: 'center', justifyContent: 'center' },
+  coverEmptyText: { color: Colors.ink.faint, fontSize: FontSize.sm },
+
+  headingSection: {
+    paddingHorizontal: Spacing.xxl,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    gap: Spacing.sm,
+  },
+  tapRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  title: {
+    color: Colors.ink.default,
+    fontSize: FontSize.xxl,
+    fontWeight: FontWeight.bold,
+    lineHeight: 29,
+  },
+  titleInput: {
+    ...editingUnderline,
+    color: Colors.ink.default,
+    fontSize: FontSize.xxl,
+    fontWeight: FontWeight.bold,
+    lineHeight: 29,
+  },
+  author: { color: Colors.ink.muted, fontSize: FontSize.base },
+  authorInput: { ...editingUnderline, color: Colors.ink.muted, fontSize: FontSize.base },
+
+  statsSection: {
+    paddingHorizontal: Spacing.xxl,
+    paddingVertical: Spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  statTile: {
+    flex: 1,
+    backgroundColor: Colors.accent.container,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    alignItems: 'center',
+  },
+  statTileValue: {
+    fontSize: FontSize.xl,
+    fontWeight: FontWeight.bold,
+    color: Colors.accent.onContainer,
+  },
+  statTileInput: {
+    color: Colors.accent.onContainer,
+    fontSize: FontSize.xl,
+    fontWeight: FontWeight.bold,
+    textAlign: 'center',
+    padding: 0,
+  },
+  statTileLabel: { fontSize: FontSize.micro, color: Colors.ink.muted, marginTop: Spacing.xxs },
+
+  metaSection: {
+    paddingHorizontal: Spacing.xxl,
+    paddingVertical: Spacing.lg,
+    gap: Spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  row: { flexDirection: 'row', justifyContent: 'space-between' },
+  rowCentered: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  rowLabel: { color: Colors.ink.faint, fontSize: FontSize.sm },
+  rowValue: { color: Colors.ink.default, fontSize: FontSize.sm, fontWeight: FontWeight.medium },
+  rowInput: {
+    ...editingUnderline,
+    color: Colors.ink.muted,
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.medium,
+    textAlign: 'right',
+    minWidth: 80,
+  },
+
+  statusSection: { paddingHorizontal: Spacing.xxl, paddingTop: Spacing.xl },
+  statusHeading: {
+    color: Colors.ink.faint,
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+    textTransform: 'uppercase',
+    letterSpacing: LetterSpacing.widest,
+    marginBottom: Spacing.md,
+  },
+  statusGroup: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.full,
+    overflow: 'hidden',
+  },
+  statusOption: { flex: 1, height: 36, alignItems: 'center', justifyContent: 'center' },
+  statusOptionActive: { backgroundColor: Colors.accent.container },
+  statusDivider: { borderRightWidth: 1, borderRightColor: Colors.border },
+  statusLabel: { fontSize: FontSize.micro, fontWeight: FontWeight.medium },
+  statusLabelActive: { color: Colors.accent.onContainer },
+  statusLabelIdle: { color: Colors.ink.muted },
+});
