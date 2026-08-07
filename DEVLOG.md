@@ -982,6 +982,102 @@ Verified: no horizontal overflow at 360-1440. Desktop layout unchanged.
 
 ---
 
+### 2026-08-07 — Google Books: wrong page counts and placeholder covers
+
+Reported from the APK build: a scan finds the book, but it lands in the library
+with no cover, or with a page count of 0. Reproduced against the live API from the
+laptop — it is not APK-specific, it is *volume*-specific. Dev testing used famous
+hand-typed ISBNs (Dune, Project Hail Mary), which are among the few volumes Google
+has actually scanned. Scanning a real shelf hits ordinary metadata-only editions,
+where both bugs fire.
+
+**What happened:**
+- `src/services/googleBooks.ts` — after the `q=isbn:` search finds a volume, fetch
+  that volume's own record (`/volumes/{id}`) and read the metadata from there.
+  Added `fetchVolumeRecord`, which returns null on any failure so the lookup falls
+  back to the search payload rather than breaking.
+- `src/services/covers.ts` — added `isGooglePlaceholder`, a HEAD request that
+  rejects Google's "image not available" card, and wired it into `isUsableCover`
+  ahead of the dimension checks.
+- Verified both fixes against the live APIs across 7 ISBNs before committing.
+
+**Design Decisions:**
+
+*Why a second request per lookup for page counts?*
+The `q=isbn:` search does not return a full `volumeInfo` — it returns a projection,
+and the fields it drops come back as `0` rather than absent, so the existing
+`pageCount ?? 0` could never catch it. Measured:
+
+```
+ISBN            search   volume record
+9781534332560        0             536
+9780345339683      133             320
+9780316769488      228             240
+9780441172719      897             896
+```
+
+The alternative was to treat `0` as "unknown" and let the user type the number in
+on the review screen. That hides the problem rather than fixing it, and the data is
+sitting one request away. A lookup already costs one network round-trip on a screen
+that shows a spinner; two is not a felt difference, and it is only paid when Google
+answers at all.
+
+*Why detect the placeholder cover by content type instead of by size?*
+Google only re-renders a cover at raised zoom for volumes it has scanned. For every
+other volume, `zoom=2/3/4/6` return a grey "image not available" card with a 200
+status. Measured on volume `1Iul0QEACAAJ`:
+
+```
+zoom=1   128x192    JPEG   the real cover
+zoom=2   300x391    PNG    placeholder
+zoom=3   575x750    PNG    placeholder   <- what the app was storing
+zoom=4   800x1043   PNG    placeholder
+zoom=6  1280x1670   PNG    placeholder
+```
+
+Every placeholder size is aspect ~0.767 and far over the 100px width floor, so the
+existing dimension guards — which were written for a *different* Google failure, the
+575x92 landscape strip — pass it straight through. Worse, it was candidate #1, so a
+usable cover was never reached: 4 of the 7 ISBNs tested had real art at Open Library
+that the app never asked for.
+
+Three options for detecting it. Blocklisting the four known dimensions is exact but
+breaks the moment Google adds a zoom level. Byte-size thresholds were already
+rejected once in this file as too fragile. Content type is the actual invariant:
+Google renders real covers as JPEG and the card as PNG, at every zoom. A HEAD
+request gets it without downloading the image.
+
+It is scoped by URL to Google's own content renderer, so a legitimately-PNG cover
+from anywhere else — including one typed in by hand on the detail screen — is not
+touched. The regex allows both `/books/content` and `/books/publisher/content`;
+publisher-supplied scans use the second path, and leaving it out would have made
+the scoping accidental rather than deliberate.
+
+*Why does the candidate list still work unchanged?*
+`coverCandidates` was already ordered `[zoom=3, Open Library, zoom=1]`. With the
+placeholder rejected it now degrades exactly as intended: Department of Truth, which
+Open Library does not have, falls through to Google's own zoom=1 — the real cover,
+just small. No reordering needed; the list was right, the filter was blind.
+
+**Architecture state after this session:**
+```
+Book lookup is unchanged in shape — bookLookup.ts is still the single entry point,
+Google Books primary, Open Library fallback, covers resolved and validated
+separately from metadata.
+
+What changed is that both stages now distrust their upstream a second time:
+
+  googleBooks.ts   search -> volume record          (search payload is a projection)
+  covers.ts        content type -> dimensions       (200 OK does not mean "a cover")
+
+A Google lookup now costs 2 requests instead of 1. A cover validation costs 1 HEAD
+before the existing Image.getSize, and only for Google URLs.
+
+Nothing else moved. No schema, screen, store, or database change.
+```
+
+---
+
 <!-- TEMPLATE — copy this block to start a new session entry
 
 ### YYYY-MM-DD — Session Title
