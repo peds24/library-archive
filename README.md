@@ -19,8 +19,9 @@ No login screen, no backend, no analytics. The data model is intentionally small
 
 ## What it does
 
-- **Scan your shelf.** Point the camera at a barcode and the book gets looked up automatically. A bulk mode lets you scan an entire shelf in one continuous pass — scan, confirm, scan again — then commit everything at once.
-- **Look books up two ways if you don't have the physical copy in hand.** Type an ISBN and it's resolved the same way scanning does (Open Library first, Google Books as a fallback), or skip lookup entirely and enter a book's details by hand.
+- **Scan your shelf.** Point the camera at a barcode and the book gets looked up automatically. Nothing is added on the strength of a scan alone — every scan goes through a two-step confirm (see below), and a bulk mode loops that back to the camera so you can work through a whole shelf in one pass.
+- **Confirm before anything lands in your library.** A scan shows a preview; confirming it opens the full book view where every field is editable, and only then do you choose **Add to Library** (done) or **Add & Scan Another** (saves and returns to the camera). A misread barcode, or a valid barcode matched to the wrong edition, gets caught here instead of quietly joining your collection.
+- **Look books up two ways if you don't have the physical copy in hand.** Type an ISBN and it's resolved the same way scanning does (Google Books first, Open Library as a fallback), or skip lookup entirely and enter a book's details by hand.
 - **Track what you're reading.** A dedicated Reading tab surfaces just the books with `reading` status — no digging through the full catalog to see what's currently open on your nightstand.
 - **Browse and filter the full library.** Filter by status (Shelved / Reading / TBR / Read) and sort alphabetically, reverse-alphabetically, or by recency.
 - **Edit anything, inline.** Every field on a book — title, author, genre, page count, publish date, cover URL, status — is tap-to-edit directly on the detail screen. No separate edit mode, no form to submit.
@@ -34,8 +35,11 @@ No login screen, no backend, no analytics. The data model is intentionally small
 | **Library** | `app/(tabs)/library.tsx` | The full collection, with status filters and sort controls |
 | **Book Detail** | `app/book/[id].tsx` | Every field editable inline; status changed via a picker |
 | **Add Book** | `app/add.tsx` | ISBN search → preview → confirm, with links out to scanning or manual entry |
-| **Scan** | `app/scan.tsx` | Live barcode scanning, single or bulk (queue-then-confirm) |
+| **Scan** | `app/scan.tsx` | Live barcode scanning; a hit shows a preview sheet and nothing more |
+| **Confirm Book** | `app/scan-review.tsx` | Step 2 of a scan — review and edit the match, then add it or add-and-keep-scanning |
 | **Manual Entry** | `app/manual-entry.tsx` | Hand-typed fallback when a book isn't found in either API |
+
+The Confirm Book screen and the Book Detail screen render the same component (`src/components/BookEditor.tsx`), so a book is reviewed on the exact screen it will later be edited on — the difference is only where edits go: to local draft state before the book is committed, straight to the store afterwards.
 
 ## Tech stack
 
@@ -43,17 +47,21 @@ No login screen, no backend, no analytics. The data model is intentionally small
 |---|---|---|
 | Framework | [Expo](https://expo.dev) (React Native, managed workflow) | One codebase, native camera + SQLite access, no native build step during development |
 | Language | TypeScript | The `Book` interface is the contract every screen, store, and DB call agrees on |
-| Routing | Expo Router | File-based routes keep the six screens above self-evident from the folder structure |
+| Routing | Expo Router | File-based routes keep the seven screens above self-evident from the folder structure |
 | Styling | NativeWind (Tailwind for React Native) | Utility classes without hand-rolled `StyleSheet` objects; a structured token set (`accent`, `surface`, `ink`, `status`) in `tailwind.config.js` drives the whole app's Material 3 / OLED-black theme |
 | State | Zustand | One small store holding the in-memory book list, hydrated from SQLite on launch |
 | Persistence | `expo-sqlite` | Local, offline, no server — every add/edit/status-change writes straight to disk |
 | Barcode scanning | `expo-camera` | Native scanner performance, no extra permissions beyond camera |
-| Book lookup | Open Library API → Google Books API → manual entry | Open Library needs no API key; Google Books fills gaps Open Library misses; manual entry is the last resort when neither has the book |
+| Book lookup | Google Books API → Open Library API → manual entry | Google Books has the more consistently populated metadata (page counts, categories, publish dates), so it goes first; Open Library needs no API key, making it a fallback that always works; manual entry is the last resort when neither has the book |
 
 ## Getting started
 
 ```bash
 npm install
+
+cp .env.example .env.local   # optional — add a Google Books API key to use the
+                             # primary lookup source; without it, lookups fall
+                             # straight through to Open Library, which needs no key
 
 npx expo start            # dev server — scan the QR with Expo Go, or...
 npx expo start --android  # ...open directly on a connected Android device
@@ -63,16 +71,34 @@ npx expo start --web      # ...or preview in a browser (UI-only: falls back to
 npx tsc --noEmit          # type-check
 ```
 
+### API keys in builds
+
+`.env.local` is gitignored, and EAS Build uploads from git — so a cloud build does **not** see your local key. Without it every lookup silently falls through to Open Library, which looks like working code with worse covers and sparser metadata. The key therefore lives on EAS, injected at build time:
+
+```bash
+eas env:list --environment preview                    # confirm what a build will see
+eas env:list --environment preview --include-sensitive # reveal the stored value
+
+# to rotate or add another key later:
+eas env:set --name EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY --value "<key>" \
+  --environment production --environment preview --environment development \
+  --visibility sensitive
+```
+
+`EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY` is currently set for all three environments, so `eas build -p android --profile preview` (the APK profile) picks it up automatically. Local builds keep reading `.env.local` as before.
+
+Worth being clear about the security model: any `EXPO_PUBLIC_*` value is inlined into the JS bundle in plaintext, so it is extractable from the APK by anyone who has it — "sensitive" visibility protects the value in the EAS dashboard, not in the shipped app. That's acceptable for a free Books API key on a personal build, but restrict it in Google Cloud Console to the Books API and set a daily quota rather than leaving it unrestricted.
+
 ## Project structure
 
 ```
 app/                  Expo Router screens (file-based routing)
   (tabs)/               Reading + Library tab navigator
   book/[id].tsx          Book detail
-  add.tsx, scan.tsx, manual-entry.tsx    Add-book flows
+  add.tsx, scan.tsx, scan-review.tsx, manual-entry.tsx    Add-book flows
 
 src/
-  components/           BookCard, FilterBar — shared UI
+  components/           BookCard, FilterBar, BookEditor — shared UI
   services/              openLibrary.ts, googleBooks.ts, bookLookup.ts, database.ts
   store/                 Zustand store (bookStore.ts)
   types/                 The canonical Book interface
@@ -94,8 +120,8 @@ All five planned build phases are complete:
 
 1. ✅ Static prototype with mock data
 2. ✅ Book detail view + Zustand state
-3. ✅ Book lookup via Open Library (with Google Books fallback)
-4. ✅ Camera/barcode scanning, including bulk scan-and-confirm
+3. ✅ Book lookup via Google Books (with Open Library fallback)
+4. ✅ Camera/barcode scanning, with a two-step scan → review → add flow
 5. ✅ SQLite persistence
 
 See `DEVLOG.md` for the full session-by-session history and the reasoning behind non-obvious decisions along the way.

@@ -252,8 +252,9 @@
     <p class="lede">
       Cataloging a physical library by hand is tedious enough that most people never finish it.
       Library Archive removes the friction from that one task: scan a barcode, and the book —
-      title, author, cover, genre, page count, publish date — appears in your library seconds
-      later, pulled from a live book database instead of typed in by hand.
+      title, author, cover, genre, page count, publish date — comes back from a live book
+      database in seconds instead of being typed in by hand. One tap to confirm it's the right
+      match, and it's cataloged.
     </p>
     <p class="lede">
       No login screen, no backend, no analytics. Everything lives in a local SQLite database on
@@ -312,11 +313,15 @@
     <div class="key">
       <div class="key-card">
         <div class="key-label">Scan your shelf</div>
-        <div class="key-value">Point the camera at a barcode and the book gets looked up automatically. Bulk mode scans an entire shelf in one pass — scan, confirm, scan again — then commits everything at once.</div>
+        <div class="key-value">Point the camera at a barcode and the book gets looked up automatically. Bulk mode loops straight back to the camera after each book, so a whole shelf goes in on one pass.</div>
+      </div>
+      <div class="key-card">
+        <div class="key-label">Confirm before it lands</div>
+        <div class="key-value">A scan never adds a book on its own. Confirming the preview opens the full, editable book view — only from there do you choose "Add to Library" or "Add &amp; Scan Another", so a misread barcode gets caught instead of joining your collection.</div>
       </div>
       <div class="key-card">
         <div class="key-label">Look books up two ways</div>
-        <div class="key-value">Type an ISBN and it resolves the same way scanning does — Open Library first, Google Books as a fallback — or skip lookup entirely and enter details by hand.</div>
+        <div class="key-value">Type an ISBN and it resolves the same way scanning does — Google Books first, Open Library as a fallback — or skip lookup entirely and enter details by hand.</div>
       </div>
       <div class="key-card">
         <div class="key-label">Track what you're reading</div>
@@ -344,11 +349,11 @@
     </div>
     <div class="stack-grid">
       <div class="stack-card"><div class="stack-layer">Framework</div><div class="stack-choice">Expo (React Native)</div><div class="stack-why">Native camera + SQLite access, no native build step during development.</div></div>
-      <div class="stack-card"><div class="stack-layer">Routing</div><div class="stack-choice">Expo Router</div><div class="stack-why">File-based routes keep the six screens self-evident from the folder structure.</div></div>
+      <div class="stack-card"><div class="stack-layer">Routing</div><div class="stack-choice">Expo Router</div><div class="stack-why">File-based routes keep the seven screens self-evident from the folder structure.</div></div>
       <div class="stack-card"><div class="stack-layer">Styling</div><div class="stack-choice">NativeWind</div><div class="stack-why">Utility classes, no hand-rolled StyleSheet objects — drives the OLED-black / warm-orange theme.</div></div>
       <div class="stack-card"><div class="stack-layer">State</div><div class="stack-choice">Zustand</div><div class="stack-why">One small store holding the in-memory book list, hydrated from SQLite on launch.</div></div>
       <div class="stack-card"><div class="stack-layer">Persistence</div><div class="stack-choice">expo-sqlite</div><div class="stack-why">Local, offline, no server — every add/edit/status-change writes straight to disk.</div></div>
-      <div class="stack-card"><div class="stack-layer">Book lookup</div><div class="stack-choice">Open Library → Google Books</div><div class="stack-why">Open Library needs no API key; Google Books fills the gaps it misses.</div></div>
+      <div class="stack-card"><div class="stack-layer">Book lookup</div><div class="stack-choice">Google Books → Open Library</div><div class="stack-why">Google Books has the more consistently populated metadata; Open Library needs no API key, so the fallback always works.</div></div>
     </div>
   </section>
 
@@ -373,8 +378,8 @@
     <div class="phases">
       <div class="phase-row"><span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Phase 1</span> — Static prototype with mock data</div>
       <div class="phase-row"><span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Phase 2</span> — Book detail view + Zustand state</div>
-      <div class="phase-row"><span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Phase 3</span> — Book lookup via Open Library, with Google Books fallback</div>
-      <div class="phase-row"><span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Phase 4</span> — Camera/barcode scanning, including bulk scan-and-confirm</div>
+      <div class="phase-row"><span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Phase 3</span> — Book lookup via Google Books, with Open Library fallback</div>
+      <div class="phase-row"><span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Phase 4</span> — Camera/barcode scanning, with a two-step scan → review → add flow</div>
       <div class="phase-row"><span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Phase 5</span> — SQLite persistence</div>
     </div>
   </section>

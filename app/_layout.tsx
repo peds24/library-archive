@@ -33,6 +33,7 @@ export default function RootLayout() {
         <Stack.Screen name="book/[id]" options={{ title: '' }} />
         <Stack.Screen name="add" options={{ title: 'Add Book', presentation: 'modal' }} />
         <Stack.Screen name="scan" options={{ title: 'Scan Book', headerStyle: { backgroundColor: '#000' }, headerTintColor: '#fff', headerTitleStyle: { color: '#fff', fontWeight: '600' as const, fontSize: 16 }, headerShadowVisible: false }} />
+        <Stack.Screen name="scan-review" options={{ title: 'Confirm Book' }} />
         <Stack.Screen name="manual-entry" options={{ title: 'Add Manually', presentation: 'modal' }} />
         <Stack.Screen name="+not-found" />
       </Stack>

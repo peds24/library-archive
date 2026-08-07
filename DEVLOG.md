@@ -811,6 +811,116 @@ if the mark ever changes, both the app icons and the landing page mark need
 regenerating from the same path data to stay in sync.
 ```
 
+### 2026-08-06 — Two-step scan confirmation + Google Books promoted to primary lookup (branch: main)
+
+**What happened:**
+- Split the scan flow into two explicit steps so a scan can no longer add a book by itself. `app/scan.tsx` now writes nothing to the store at all — its preview sheet's primary action is "Confirm Book" (was "Add to Library"), which pushes the looked-up `Book` as a JSON route param to a new screen. Its secondary action is "Not this book — rescan" (was "Scan another", which used to silently save).
+- Added `app/scan-review.tsx` — step 2. Holds the scanned book in local draft state, renders it as a fully editable book view, and offers three exits: **Add to Library** (commits, `router.dismissAll()` out of the whole add flow), **Add & Scan Another** (commits, `router.back()` to the camera), and **Discard — wrong book** (commits nothing). Guards against duplicates itself: if the ISBN is already in the library, both add actions are disabled and the secondary button degrades to a plain "Scan Another".
+- Extracted the entire editable book view out of `app/book/[id].tsx` into `src/components/BookEditor.tsx` (cover with a no-cover fallback, tap-to-edit title/author/pages/published/genre/cover-URL, segmented status picker). Both `book/[id].tsx` and `scan-review.tsx` now render it; `book/[id].tsx` is down to ~70 lines and is just the store wiring, delete action, and header.
+- Added a `useFocusEffect` reset to `app/scan.tsx` — on focus it clears the preview and returns to the `scanning` phase, which is what makes the scan → review → scan loop resume correctly whether the user came back via "Add & Scan Another" or an Android back gesture.
+- Flipped lookup order in `src/services/bookLookup.ts`: Google Books first, Open Library as fallback (was the reverse).
+- Registered `scan-review` in `app/_layout.tsx` (title "Confirm Book", regular push — not a modal, so the back gesture returns to the camera rather than dismissing the flow).
+- Reworded the two "Couldn't reach Open Library" network errors (`app/scan.tsx`, `app/add.tsx`) to "Couldn't reach the book databases" — with two sources in play, naming one was misleading.
+- Docs updated to match: `README.md` (feature list, screens table, tech-stack lookup row, project structure, phase list, plus a `cp .env.example .env.local` step now that the primary source takes a key), `docs/index.html` (hero lede, a new "Confirm before it lands" feature card, stack card, phase rows), `CLAUDE.md` (Book Lookup / Barcode Scanning sections rewritten, new Editable book view section), and `.env.example` (key is now primary, not a fallback).
+
+**Design Decisions:**
+
+*Why a separate route for the review step instead of expanding the existing bottom sheet in place?*
+The requirement was that the confirm step is where edits happen, and inline editing needs the real book view — cover, six tap-to-edit fields, status picker — which does not fit in a sheet above a live camera, and pulling it in would have meant a second, smaller implementation of the same editing UI. A pushed route also gets the back-gesture semantics for free: backing out of review lands on the camera, which is exactly the desired "no, rescan" behavior, with no extra state to manage.
+
+*Why pass the book as a JSON route param rather than holding a `pendingBook` in the Zustand store?*
+A pending, uncommitted book in the store is a second kind of book that every consumer of `books` would have to know to ignore, and it survives navigation in ways that invite stale-state bugs (backing out of review leaving a phantom book behind). The param is scoped to exactly the one screen that needs it and dies with that screen. The cost is a JSON round-trip and a `catch` for a malformed param — cheap, and the screen renders a recoverable error state if it ever fails.
+
+*Do "Add & Scan Another" and "Add to Library" both save, or does "scan another" discard?*
+Both save; they differ only in where the user lands. The whole point of bulk mode is cataloging a shelf in one pass, so the loop action has to commit — a "scan another" that discarded the current book would silently lose it, which is the same class of data-loss bug fixed in commit 913489d. "Discard — wrong book" is the explicit non-committing exit, and it's labeled as such rather than being the implicit consequence of choosing to keep scanning.
+
+*Why extract `BookEditor` instead of writing a lighter, review-only edit form?*
+A review-only form would drift from the detail screen the moment either changed, and would mean a scanned book gets reviewed on a screen that looks nothing like where it will live afterwards. Sharing the component makes "review" and "edit" literally the same UI, with the only difference being where `onChange` points — the store (persists immediately) or `useState` (persists on confirm). It also means new `Book` fields get added in one place.
+
+*Why promote Google Books to primary when Open Library was chosen originally for needing no API key?*
+The no-key argument picked the original default, but it's an argument about setup friction, not about data quality — and in practice Google Books populates `pageCount`, `categories`, and `publishedDate` far more consistently, which are three of the six fields the app displays. Sparse metadata was landing books with `0` pages and "Uncategorized" genres. The ordering keeps the original benefit intact rather than trading it away: `googleBooks.ts` already returns `null` immediately when `EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY` is unset, so a clone with no `.env.local` falls straight through to Open Library and behaves exactly as it did before. The key buys better metadata; its absence costs nothing.
+
+*Why keep the duplicate check in both `scan.tsx` and `scan-review.tsx`?*
+They catch different things. The scanner's check runs at scan time and produces a distinct "already in your library" sheet, so the user is told before being sent to a review screen for a book they already own. The review screen's check is the commit-time guard — it also covers the case where the same book is reached twice within one bulk session, since the store updates between loops.
+
+**Architecture state after this session:**
+```
+Add-book flows (app/):
+  add.tsx          ISBN search → preview → add          (unchanged)
+  scan.tsx         camera → lookup → preview sheet.
+                   Commits NOTHING. "Confirm Book" pushes to scan-review
+                   with the Book as a JSON param. Resets to `scanning` on
+                   focus, which is what makes the bulk loop work.
+  scan-review.tsx  draft state + BookEditor + three exits:
+                   Add to Library (commit → dismissAll)
+                   Add & Scan Another (commit → back to camera)
+                   Discard (no commit → back to camera)
+  manual-entry.tsx hand-typed fallback                  (unchanged)
+
+Shared editable book view:
+  src/components/BookEditor.tsx
+      ├─ app/book/[id].tsx      onChange → store (updateBook / updateStatus)
+      └─ app/scan-review.tsx    onChange → local draft, committed on confirm
+
+Lookup chain (src/services/):
+  bookLookup.ts — sole entry point for all screens
+      1. googleBooks.ts   (primary; returns null with no API key)
+      2. openLibrary.ts   (fallback; no key required)
+      3. manual entry     (UI-level last resort)
+
+Nothing reaches the store from a scan without an explicit user confirm.
+```
+
+### 2026-08-06 — Cover art resolution + API key survives EAS builds (branch: main)
+
+**What happened:**
+- Added `src/services/covers.ts`. Cover URLs are now resolved and validated independently of metadata: `resolveCover(candidates)` walks a best-first list and returns the first URL whose *real* decoded dimensions look like a book cover (aspect 0.4-1.1, width >= 100), or `''` so the UI shows its "No cover" placeholder.
+- `googleCoverAtZoom` replaces the old inline `.replace('zoom=1','zoom=3')` in `googleBooks.ts`, and additionally normalises `http:`->`https:` and strips `&edge=curl` (a fake page-curl overlay Google paints onto some renders).
+- `openLibrary.ts` now reads the `cover` object the API actually returns instead of hardcoding the ISBN-keyed CDN URL.
+- `bookLookup.ts` builds the candidate chain: when Google supplied the metadata, `[google zoom=3, OL isbn CDN, google zoom=1]`; when Open Library supplied it, just its own cover object.
+- Stored `EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY` as an EAS environment variable (`eas env:set`, visibility `sensitive`) across development/preview/production, and verified the stored value is byte-identical to `.env.local`. Documented the whole arrangement in `README.md` (new "API keys in builds" section) and `CLAUDE.md`.
+
+**Design Decisions:**
+
+*Should covers come from Open Library or Google Books?*
+The session started from the assumption that Open Library "has a better handle on covers." Measuring 8 ISBNs contradicted it: Open Library's `-L.jpg` tops out around 500px tall (265x475, 375x500, 331x500...), while Google at `zoom=3` returns 575x750 to 575x1030 with 8/8 coverage. The app renders covers at 144x208pt, which is 432x624px on a 3x Pixel screen — so Open Library's "large" is *below* the render size and visibly soft, while Google's clears it. Google stays the primary cover source; Open Library became the fallback rather than the default.
+
+*Why validate cover images at all, instead of trusting the URL each API hands back?*
+Because neither API signals a bad cover through the status code, and both were caught doing it. Google's high-zoom re-render collapses for some volumes — ISBN 9780553380163 returns 575x92, a landscape strip, at every zoom above 1 while `zoom=1` is a correct 128x191. Open Library's ISBN-keyed CDN answers **200 OK with a 1x1, 43-byte blank** when it has no scan (confirmed with `curl -I`), which is what the previous hardcoded URL had been silently storing for coverless books. Both cases render as a broken or empty box with no error anywhere.
+
+*Why validate on aspect ratio and width rather than on `Content-Length`?*
+Byte size does separate the cases (the degenerate strip was 1.9 KB against 9-74 KB for good renders) and a `HEAD` request is cheaper than a decode. But the threshold is a guess that a legitimately flat, well-compressing cover could fall under. Dimensions are categorical, not statistical: 6.25 is not a book. The width floor exists separately because Open Library's 1x1 blank has an aspect of exactly 1.0 and would otherwise pass. `Image.getSize` also warms the RN image cache, so the winning candidate is already downloaded by the time the review screen renders it.
+
+*Why `?default=false` on the Open Library CDN fallback?*
+It converts that silent 200-with-a-blank into a real 404, so a missing cover fails fast at the network layer instead of being caught later by the dimension check. Belt and braces — the dimension check would catch it anyway, but only after downloading the placeholder.
+
+*Why put the API key in EAS environment variables instead of `eas.json` or a committed `.env`?*
+`eas.json` is committed and this repo is public, so a key there would be published. `.env.local` is gitignored and EAS Build uploads from git, so cloud builds simply never saw the key — the failure mode being that `googleBooks.ts` returns `null` immediately with no key, so builds silently degraded to Open Library-only and *looked* like they worked. EAS env vars are stored server-side, injected at build time, and survive rotation without a commit. Visibility is `sensitive` rather than `secret` so the value can still be read back via `--include-sensitive`.
+
+*Is `sensitive` visibility actually protecting anything?*
+Not in the shipped app, and it's worth not kidding ourselves: every `EXPO_PUBLIC_*` value is inlined into the JS bundle in plaintext and is extractable from the APK. The visibility setting protects the value in the EAS dashboard and CLI output only. The real mitigation is a Google Cloud Console restriction to the Books API plus a daily quota, which is noted in the README rather than left implicit.
+
+**Architecture state after this session:**
+```
+Lookup chain (src/services/):
+  bookLookup.ts    sole entry point. Metadata: googleBooks -> openLibrary.
+                   Cover: resolved separately + validated, best-first:
+                     via Google -> [google zoom=3, OL isbn CDN, google zoom=1]
+                     via OL     -> [OL cover object]
+                   Falls to '' -> UI renders "No cover".
+  covers.ts        googleCoverAtZoom() URL rewriting (zoom, https, edge=curl),
+                   openLibraryCoverByISBN() (?default=false so misses 404),
+                   resolveCover() first candidate passing the dimension check.
+  googleBooks.ts   metadata + raw thumbnail at zoom=3. null without an API key.
+  openLibrary.ts   metadata + the API's own `cover` object. No key needed.
+
+Config:
+  .env.local              local dev + local builds (gitignored)
+  EAS env vars            cloud builds — EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY set
+                          on development/preview/production, visibility sensitive
+  Both hold the same key; neither is secret once inside a built APK.
+```
+
 ---
 
 <!-- TEMPLATE — copy this block to start a new session entry

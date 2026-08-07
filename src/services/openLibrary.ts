@@ -10,12 +10,19 @@ interface OLSubject {
   name: string;
 }
 
+interface OLCover {
+  small?: string;
+  medium?: string;
+  large?: string;
+}
+
 interface OLBookData {
   title?: string;
   authors?: OLAuthor[];
   number_of_pages?: number;
   publish_date?: string;
   subjects?: OLSubject[];
+  cover?: OLCover;
 }
 
 type OLResponse = Record<string, OLBookData>;
@@ -33,8 +40,13 @@ export async function fetchBookByISBN(isbn: string): Promise<Book | null> {
   const bookData = data[`ISBN:${isbn}`];
   if (!bookData) return null;
 
-  // Use the Open Library cover CDN directly — same format already used in mock-books.json
-  const coverImage = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+  // Use the `cover` object the API actually returns rather than guessing at the
+  // ISBN-keyed CDN URL (`covers.openlibrary.org/b/isbn/{isbn}-L.jpg`). That guess
+  // is not safe: for a book Open Library has metadata but no scan for, the CDN
+  // answers 200 OK with a 1×1, 43-byte blank instead of 404ing, so the app would
+  // store a URL that renders as an empty box. The `cover` key is simply absent
+  // when there's no cover, which is unambiguous.
+  const coverImage = bookData.cover?.large ?? bookData.cover?.medium ?? '';
 
   return {
     id: isbn,

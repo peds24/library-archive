@@ -1,6 +1,6 @@
 import { CameraView, useCameraPermissions, type BarcodeType } from 'expo-camera';
-import { Stack, useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -22,12 +22,22 @@ export default function ScanScreen() {
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const books = useBookStore((s) => s.books);
-  const addBook = useBookStore((s) => s.addBook);
 
   const [phase, setPhase] = useState<ScanPhase>('scanning');
   const [preview, setPreview] = useState<Book | null>(null);
   const [lastIsbn, setLastIsbn] = useState('');
   const isProcessing = useRef(false);
+
+  // Returning from the review screen (either "Add & Scan Another" or a back gesture)
+  // leaves this screen mounted on its old preview phase. Resetting on focus is what
+  // makes the scan → review → scan loop work without re-mounting the camera.
+  useFocusEffect(
+    useCallback(() => {
+      setPreview(null);
+      setPhase('scanning');
+      isProcessing.current = false;
+    }, [])
+  );
 
   // Permission not yet resolved
   if (!permission) return <View style={styles.black} />;
@@ -80,21 +90,18 @@ export default function ScanScreen() {
     isProcessing.current = false;
   }
 
-  // Every scan is saved the moment its preview is confirmed — "Scan another"
-  // saves and loops back to the camera, "Add to Library" saves and exits.
-  // (Books are written straight to the store rather than held in a temp
-  // queue, so `books` above already reflects prior scans for the duplicate
-  // check on the next barcode.)
-  function handleAddAndContinue() {
+  // Nothing is saved here. Confirming a scan hands the looked-up book to the review
+  // screen, which is where it can be edited and where the two commit actions ("Add
+  // to Library" / "Add & Scan Another") live. Splitting it this way means a bad scan
+  // — a misread barcode, or a right barcode matched to the wrong edition — never
+  // reaches the library on its own.
+  function handleConfirm() {
     if (!preview) return;
-    addBook(preview);
-    resumeScanning();
-  }
-
-  function handleAddAndExit() {
-    if (!preview) return;
-    addBook(preview);
-    router.back();
+    router.push({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      pathname: '/scan-review' as any,
+      params: { book: JSON.stringify(preview) },
+    });
   }
 
   const cameraActive = phase === 'scanning' || phase === 'fetching';
@@ -176,7 +183,7 @@ export default function ScanScreen() {
               <View className="items-center gap-2 py-2">
                 <Text className="text-ink font-semibold text-base">Network error</Text>
                 <Text className="text-ink-faint text-sm text-center">
-                  Couldn't reach Open Library.{'\n'}Check your connection.
+                  Couldn't reach the book databases.{'\n'}Check your connection.
                 </Text>
               </View>
             )}
@@ -184,11 +191,11 @@ export default function ScanScreen() {
             {/* Actions */}
             {phase === 'preview' && (
               <View className="gap-2">
-                <Pressable onPress={handleAddAndExit} className="bg-accent py-3 rounded-full items-center">
-                  <Text className="text-accent-on font-semibold text-base">Add to Library</Text>
+                <Pressable onPress={handleConfirm} className="bg-accent py-3 rounded-full items-center">
+                  <Text className="text-accent-on font-semibold text-base">Confirm Book</Text>
                 </Pressable>
-                <Pressable onPress={handleAddAndContinue} className="py-2 items-center">
-                  <Text className="text-ink-faint font-medium">Scan another</Text>
+                <Pressable onPress={resumeScanning} className="py-2 items-center">
+                  <Text className="text-ink-faint font-medium">Not this book — rescan</Text>
                 </Pressable>
               </View>
             )}

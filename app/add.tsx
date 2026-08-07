@@ -143,7 +143,7 @@ export default function AddBookScreen() {
         {phase === 'error' && (
           <View className="flex-1 items-center justify-center px-8 gap-4">
             <Text className="text-ink-muted text-base text-center">
-              Couldn't reach Open Library.{'\n'}Check your connection and try again.
+              Couldn't reach the book databases.{'\n'}Check your connection and try again.
             </Text>
             <Pressable onPress={() => setPhase('input')}>
               <Text className="text-accent font-semibold">Try again</Text>

@@ -1,4 +1,5 @@
 import { Book } from '@/src/types/book';
+import { googleCoverAtZoom } from './covers';
 
 const BASE = 'https://www.googleapis.com/books/v1/volumes';
 const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY;
@@ -32,8 +33,7 @@ export async function fetchBookByISBN(isbn: string): Promise<Book | null> {
   if (!data.items?.length) return null;
 
   const { volumeInfo } = data.items[0];
-  const rawCover = volumeInfo.imageLinks?.thumbnail ?? '';
-  const coverImage = rawCover.replace('http://', 'https://').replace('zoom=1', 'zoom=3');
+  const coverImage = googleCoverAtZoom(volumeInfo.imageLinks?.thumbnail ?? '', 3);
 
   return {
     id: isbn,
