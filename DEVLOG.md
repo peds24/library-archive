@@ -743,6 +743,38 @@ app/scan.tsx — single linear flow: scan → preview → [Add to Library: save 
 
 ---
 
+### 2026-08-06 — GitHub Pages landing page (branch: landing-page)
+
+**What happened:**
+- Added `docs/index.html`, a self-contained static landing page for the project, plus `docs/favicon.png` (copied from `assets/images/favicon.png`, since a GitHub Pages `/docs` source can't reach files outside that folder).
+- The page reuses the visual identity established in `inspo/mockups/ui-direction-material-crisp.html` (also published as the "Library — Material, Crisp" Claude artifact) rather than inventing a new look: OLED-black default theme with the committed warm-orange accent, the hexagon motif (page background grid + book covers), Material 3 shapes (pill buttons, tonal containers, filter-chip-style status pills), and Roboto-first restrained typography.
+- Structure: hero (mark, eyebrow, h1, lede, GitHub CTA) → a phone-frame showcase reusing the mockup's `.phone`/`.screen` chrome but filled with the four real screenshots from `docs/screenshots/` instead of fake mock content → feature grid → tech stack grid → "running locally" install snippet → build-phase checklist → footer linking to the repo, `DEVLOG.md`, and `docs/PROJECT_PLAN.md`.
+- Kept a light/dark toggle (same `data-theme` attribute + `prefers-color-scheme` fallback pattern as the mockup) but dropped the mockup's four-way accent switcher — this is the shipped page for the committed direction, not a design exploration, so only the toggle earned its place.
+
+**Design Decisions:**
+
+*Why `docs/index.html` instead of a dedicated `gh-pages` branch or a root `index.html`?*
+`docs/` already exists in `main` for planning docs and screenshots, and GitHub Pages supports "deploy from branch: main, folder: /docs" natively — no build step, no second branch to keep in sync, no CI. Fits the project's own no-backend, no-build ethos.
+
+*Why reuse the mockup's exact component CSS (`.phone`, `.screen`, `.key-card`, color tokens) instead of a fresh design pass?*
+The mockup is already the app's committed design language, and the ask was explicitly to carry it into the landing page — reusing the same tokens and component shapes makes the marketing page, the design exploration artifact, and the shipped app read as one continuous identity instead of three unrelated visual treatments.
+
+*Why real screenshots instead of the mockup's fabricated book-cover content?*
+The mockup's phones were illustrative (invented titles, hex-shaped covers) because no app existed yet to screenshot. The landing page's job is to show the actual product, so the phone chrome was kept but the contents were swapped for the real screenshots already captured in `docs/screenshots/` for the README.
+
+**Architecture state after this session:**
+```
+docs/
+  index.html       — landing page (self-contained HTML/CSS/JS, no build step)
+  favicon.png       — copied from assets/images/ for GH Pages /docs scoping
+  screenshots/      — reused as-is (already existed for README)
+GitHub Pages source still needs to be enabled in repo settings
+  (Settings → Pages → Deploy from branch → main → /docs) — not done from here,
+  since it's a shared-infrastructure change outside this session's scope.
+```
+
+---
+
 <!-- TEMPLATE — copy this block to start a new session entry
 
 ### YYYY-MM-DD — Session Title

@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Library Archive — a home library scanner for Android</title>
+<meta name="description" content="Scan the barcodes on your shelf and watch your collection catalog itself. Offline-first, no account, no cloud — built for a Pixel." />
+<link rel="icon" href="favicon.png" />
+<style>
+  :root {
+    --bg: #000000;
+    --hexline: rgba(255, 182, 140, 0.05);
+    --surface: #0a0a0a;
+    --surface-tonal: #4a1a00;
+    --surface-2: #141414;
+    --ink: #ffffff;
+    --ink-muted: #c9c0b7;
+    --ink-faint: #8f857a;
+    --border: #2a2a2a;
+    --primary: #ffb68c;
+    --on-primary: #2a0f00;
+    --primary-container: #4a1a00;
+    --on-primary-container: #ffd9be;
+    --status-reading-bg: rgba(59, 130, 246, 0.22);
+    --status-reading-fg: #9dc0ff;
+    --status-tbr-bg: rgba(217, 119, 6, 0.24);
+    --status-tbr-fg: #ffc069;
+    --status-read-bg: rgba(34, 197, 94, 0.22);
+    --status-read-fg: #7fe6a0;
+    --status-shelved-bg: rgba(255, 255, 255, 0.09);
+    --status-shelved-fg: #d6cec5;
+    --shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 30px 70px -25px rgba(0, 0, 0, 0.85);
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #fffaf7;
+      --hexline: rgba(156, 66, 0, 0.07);
+      --surface: #ffffff;
+      --surface-tonal: #fbeae0;
+      --surface-2: #f7f1ec;
+      --ink: #1f1b16;
+      --ink-muted: #726a61;
+      --ink-faint: #9a9089;
+      --border: #ede2d8;
+      --primary: #9c4200;
+      --on-primary: #ffffff;
+      --primary-container: #ffdbc7;
+      --on-primary-container: #341100;
+      --status-reading-bg: #dce9ff;
+      --status-reading-fg: #1d4ed8;
+      --status-tbr-bg: #fcebd1;
+      --status-tbr-fg: #b45309;
+      --status-read-bg: #dcfce7;
+      --status-read-fg: #15803d;
+      --status-shelved-bg: #f0f0ee;
+      --status-shelved-fg: #78716c;
+      --shadow: 0 30px 60px -20px rgba(52, 17, 0, 0.28), 0 4px 14px rgba(52, 17, 0, 0.1);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #fffaf7; --hexline: rgba(156, 66, 0, 0.07); --surface: #ffffff; --surface-tonal: #fbeae0;
+    --surface-2: #f7f1ec; --ink: #1f1b16; --ink-muted: #726a61; --ink-faint: #9a9089; --border: #ede2d8;
+    --primary: #9c4200; --on-primary: #ffffff; --primary-container: #ffdbc7; --on-primary-container: #341100;
+    --status-reading-bg: #dce9ff; --status-reading-fg: #1d4ed8; --status-tbr-bg: #fcebd1; --status-tbr-fg: #b45309;
+    --status-read-bg: #dcfce7; --status-read-fg: #15803d; --status-shelved-bg: #f0f0ee; --status-shelved-fg: #78716c;
+    --shadow: 0 30px 60px -20px rgba(52, 17, 0, 0.28), 0 4px 14px rgba(52, 17, 0, 0.1);
+  }
+  :root[data-theme="dark"] {
+    --bg: #000000; --hexline: rgba(255, 182, 140, 0.05); --surface: #0a0a0a; --surface-tonal: #4a1a00;
+    --surface-2: #141414; --ink: #ffffff; --ink-muted: #c9c0b7; --ink-faint: #8f857a; --border: #2a2a2a;
+    --primary: #ffb68c; --on-primary: #2a0f00; --primary-container: #4a1a00; --on-primary-container: #ffd9be;
+    --status-reading-bg: rgba(59, 130, 246, 0.22); --status-reading-fg: #9dc0ff;
+    --status-tbr-bg: rgba(217, 119, 6, 0.24); --status-tbr-fg: #ffc069;
+    --status-read-bg: rgba(34, 197, 94, 0.22); --status-read-fg: #7fe6a0;
+    --status-shelved-bg: rgba(255, 255, 255, 0.09); --status-shelved-fg: #d6cec5;
+    --shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 30px 70px -25px rgba(0, 0, 0, 0.85);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(30deg, var(--hexline) 12%, transparent 12.5%, transparent 87%, var(--hexline) 87.5%, var(--hexline)),
+      linear-gradient(150deg, var(--hexline) 12%, transparent 12.5%, transparent 87%, var(--hexline) 87.5%, var(--hexline)),
+      linear-gradient(30deg, var(--hexline) 12%, transparent 12.5%, transparent 87%, var(--hexline) 87.5%, var(--hexline)),
+      linear-gradient(150deg, var(--hexline) 12%, transparent 12.5%, transparent 87%, var(--hexline) 87.5%, var(--hexline)),
+      linear-gradient(60deg, var(--hexline) 25%, transparent 25.5%, transparent 75%, var(--hexline) 75%, var(--hexline)),
+      linear-gradient(60deg, var(--hexline) 25%, transparent 25.5%, transparent 75%, var(--hexline) 75%, var(--hexline));
+    background-size: 64px 112px;
+    background-position: 0 0, 0 0, 32px 56px, 32px 56px, 0 0, 32px 56px;
+    color: var(--ink);
+    font-family: Roboto, "Segoe UI", system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+  a { color: inherit; }
+  img { max-width: 100%; display: block; }
+
+  .page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 2.25rem 1.75rem 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 5rem;
+  }
+
+  /* ---- Top bar ---- */
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .brand { display: flex; align-items: center; gap: 0.6rem; font-size: 0.9375rem; font-weight: 500; }
+  .brand .mark { width: 1.7rem; height: 1.7rem; color: var(--primary); }
+  .theme-toggle {
+    width: 2.5rem; height: 2.5rem; border-radius: 50%;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--ink-muted); display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .theme-toggle:hover { color: var(--ink); border-color: var(--ink-faint); }
+  .theme-toggle svg { width: 1.1rem; height: 1.1rem; }
+  .theme-toggle .icon-sun { display: none; }
+  :root[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+  :root[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .theme-toggle .icon-moon { display: none; }
+    :root:not([data-theme="light"]) .theme-toggle .icon-sun { display: block; }
+  }
+
+  /* ---- Hero ---- */
+  .hero { padding-top: 2rem; }
+  .hero .mark-lg { width: 3.25rem; height: 3.25rem; color: var(--primary); margin-bottom: 1.5rem; }
+  .eyebrow { font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--primary); }
+  h1 {
+    margin: 0.6rem 0 0; font-size: clamp(2.4rem, 5vw, 3.75rem); font-weight: 400;
+    letter-spacing: -0.01em; line-height: 1.06; text-wrap: balance; max-width: 19ch;
+  }
+  .lede { max-width: 42rem; margin: 1.75rem 0 0; font-size: 1.25rem; line-height: 1.65; font-weight: 400; color: var(--ink-muted); }
+  .lede + .lede { margin-top: 1rem; }
+
+  .cta-row { display: flex; flex-wrap: wrap; gap: 0.85rem; margin-top: 2.25rem; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.85rem 1.4rem; border-radius: 999px; text-align: center;
+    font-size: 0.9rem; font-weight: 500; text-decoration: none; border: 1px solid transparent;
+  }
+  .btn svg { width: 1.05rem; height: 1.05rem; }
+  .btn-primary { background: var(--primary); color: var(--on-primary); }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-outline { border-color: var(--border); color: var(--ink); }
+  .btn-outline:hover { border-color: var(--ink-faint); }
+
+  .status-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 2.25rem; }
+  .status-chip { padding: 0.32rem 0.75rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+  .status-reading { background: var(--status-reading-bg); color: var(--status-reading-fg); }
+  .status-tbr { background: var(--status-tbr-bg); color: var(--status-tbr-fg); }
+  .status-read { background: var(--status-read-bg); color: var(--status-read-fg); }
+  .status-shelved { background: var(--status-shelved-bg); color: var(--status-shelved-fg); }
+
+  /* ---- Section shell ---- */
+  section { display: flex; flex-direction: column; gap: 1.75rem; }
+  .section-head { max-width: 40rem; }
+  .section-label { font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--primary); }
+  .section-title { margin: 0.5rem 0 0; font-size: 1.75rem; font-weight: 400; letter-spacing: -0.005em; }
+  .section-sub { margin: 0.6rem 0 0; font-size: 1rem; line-height: 1.6; color: var(--ink-muted); }
+
+  /* ---- Phone showcase ---- */
+  .phones { display: grid; grid-template-columns: repeat(4, minmax(200px, 1fr)); gap: 1.5rem; }
+  @media (max-width: 980px) { .phones { grid-template-columns: repeat(2, minmax(200px, 1fr)); } }
+  @media (max-width: 520px) { .phones { grid-template-columns: 1fr; max-width: 320px; margin: 0 auto; } }
+  .phone-block { display: flex; flex-direction: column; gap: 0.85rem; }
+  .phone {
+    background: var(--surface-2); border-radius: 30px; padding: 0.6rem; box-shadow: var(--shadow);
+  }
+  .screen {
+    background: var(--surface-2); border-radius: 22px; overflow: hidden;
+    aspect-ratio: 500 / 862; display: flex; align-items: center; justify-content: center;
+  }
+  .screen img { width: 100%; height: 100%; object-fit: contain; background: var(--surface-2); }
+  .phone-title { font-size: 0.875rem; font-weight: 500; }
+  .phone-note { font-size: 0.8125rem; color: var(--ink-muted); line-height: 1.5; margin-top: 0.15rem; }
+
+  /* ---- Feature / key-card grid (reused from the UI-direction comp) ---- */
+  .key { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 0.9rem; }
+  .key-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 1.25rem 1.35rem; display: flex; flex-direction: column; gap: 0.55rem; }
+  .key-label { font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--primary); }
+  .key-value { font-size: 0.9375rem; line-height: 1.55; color: var(--ink); }
+
+  /* ---- Tech stack ---- */
+  .stack-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 0.9rem; }
+  .stack-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 1.1rem 1.3rem; }
+  .stack-layer { font-size: 0.6875rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
+  .stack-choice { font-size: 1rem; font-weight: 500; margin-top: 0.35rem; }
+  .stack-why { font-size: 0.8438rem; color: var(--ink-muted); margin-top: 0.35rem; line-height: 1.5; }
+
+  /* ---- Get started ---- */
+  .install { display: flex; flex-direction: column; gap: 1rem; max-width: 34rem; }
+  .code-block {
+    background: var(--surface-2); border-radius: 12px; padding: 1.1rem 1.25rem;
+    font-family: "SF Mono", "Roboto Mono", ui-monospace, monospace; font-size: 0.85rem; line-height: 1.9;
+    border-bottom: 2px solid var(--primary); overflow-x: auto;
+  }
+  .code-block .prompt { color: var(--ink-faint); }
+  .code-block .cmd { color: var(--ink); }
+  .code-block .comment { color: var(--ink-faint); }
+
+  /* ---- Phases ---- */
+  .phases { display: flex; flex-direction: column; gap: 0.6rem; }
+  .phase-row { display: flex; align-items: center; gap: 0.75rem; font-size: 0.9375rem; color: var(--ink-muted); }
+  .phase-row .check {
+    width: 1.35rem; height: 1.35rem; border-radius: 50%; background: var(--primary-container);
+    color: var(--on-primary-container); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .phase-row .check svg { width: 0.75rem; height: 0.75rem; }
+  .phase-row span.label { color: var(--ink); font-weight: 500; }
+
+  /* ---- Footer ---- */
+  footer.site-footer {
+    border-top: 1px solid var(--border); padding-top: 2.25rem;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;
+    font-size: 0.8125rem; color: var(--ink-faint);
+  }
+  footer.site-footer a { color: var(--ink-muted); text-decoration: none; }
+  footer.site-footer a:hover { color: var(--ink); }
+  .footer-links { display: flex; gap: 1.25rem; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="topbar">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 48 48" fill="none">
+        <path d="M24 3 L43 13.5 V34.5 L24 45 L5 34.5 V13.5 Z" stroke="currentColor" stroke-width="2.5"/>
+        <path d="M24 15 V33 M17 18 V30 M31 18 V30" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      Library Archive
+    </div>
+    <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle light and dark theme">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v2.3M12 19.2v2.3M4.4 4.4l1.6 1.6M18 18l1.6 1.6M2.5 12h2.3M19.2 12h2.3M4.4 19.6l1.6-1.6M18 6l1.6-1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+
+  <div class="hero">
+    <svg class="mark-lg" viewBox="0 0 48 48" fill="none">
+      <path d="M24 3 L43 13.5 V34.5 L24 45 L5 34.5 V13.5 Z" stroke="currentColor" stroke-width="2"/>
+      <path d="M24 15 V33 M17 18 V30 M31 18 V30" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <div class="eyebrow">Home Library Scanner · Android</div>
+    <h1>Point your phone at a shelf. Watch it become a catalog.</h1>
+    <p class="lede">
+      Cataloging a physical library by hand is tedious enough that most people never finish it.
+      Library Archive removes the friction from that one task: scan a barcode, and the book —
+      title, author, cover, genre, page count, publish date — appears in your library seconds
+      later, pulled from a live book database instead of typed in by hand.
+    </p>
+    <p class="lede">
+      No login screen, no backend, no analytics. Everything lives in a local SQLite database on
+      your device — closing the app never loses a change, and there's nothing to sync.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="https://github.com/peds24/library-archive">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        View on GitHub
+      </a>
+      <a class="btn btn-outline" href="#get-started">Get it running</a>
+    </div>
+    <div class="status-row">
+      <span class="status-chip status-shelved">Shelved</span>
+      <span class="status-chip status-tbr">TBR</span>
+      <span class="status-chip status-reading">Reading</span>
+      <span class="status-chip status-read">Read</span>
+    </div>
+  </div>
+
+  <section id="screens">
+    <div class="section-head">
+      <div class="section-label">The App</div>
+      <h2 class="section-title">Four screens, nothing extra.</h2>
+      <p class="section-sub">Material 3 components — filled text fields, filter chips, a segmented status picker, a pill-indicator nav bar — on an OLED-black theme, because it runs on a Pixel and should feel like it.</p>
+    </div>
+    <div class="phones">
+      <div class="phone-block">
+        <div class="phone"><div class="screen"><img src="screenshots/reading.jpg" alt="Currently Reading screen — tonal cards for in-progress books" loading="lazy" /></div></div>
+        <div class="phone-title">Reading</div>
+        <div class="phone-note">The default landing tab — just the books marked "Reading," no digging through the full catalog.</div>
+      </div>
+      <div class="phone-block">
+        <div class="phone"><div class="screen"><img src="screenshots/library.jpg" alt="Library screen — full collection with status filter chips" loading="lazy" /></div></div>
+        <div class="phone-title">Library</div>
+        <div class="phone-note">The full collection, filterable by status and sortable alphabetically or by recency.</div>
+      </div>
+      <div class="phone-block">
+        <div class="phone"><div class="screen"><img src="screenshots/book-detail.jpg" alt="Book detail screen with editable fields and a segmented status picker" loading="lazy" /></div></div>
+        <div class="phone-title">Book Detail</div>
+        <div class="phone-note">Every field — title, author, genre, page count, status — is tap-to-edit inline. No separate edit mode.</div>
+      </div>
+      <div class="phone-block">
+        <div class="phone"><div class="screen"><img src="screenshots/add-book.jpg" alt="Add Book screen — ISBN search, scan, or manual entry" loading="lazy" /></div></div>
+        <div class="phone-title">Add Book</div>
+        <div class="phone-note">Search by ISBN, scan a barcode, or fall back to manual entry when neither API has the book.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="section-head">
+      <div class="section-label">What It Does</div>
+      <h2 class="section-title">One core loop, everything else secondary.</h2>
+    </div>
+    <div class="key">
+      <div class="key-card">
+        <div class="key-label">Scan your shelf</div>
+        <div class="key-value">Point the camera at a barcode and the book gets looked up automatically. Bulk mode scans an entire shelf in one pass — scan, confirm, scan again — then commits everything at once.</div>
+      </div>
+      <div class="key-card">
+        <div class="key-label">Look books up two ways</div>
+        <div class="key-value">Type an ISBN and it resolves the same way scanning does — Open Library first, Google Books as a fallback — or skip lookup entirely and enter details by hand.</div>
+      </div>
+      <div class="key-card">
+        <div class="key-label">Track what you're reading</div>
+        <div class="key-value">A dedicated Reading tab surfaces just the books with "reading" status, separate from the full catalog.</div>
+      </div>
+      <div class="key-card">
+        <div class="key-label">Browse and filter</div>
+        <div class="key-value">Filter the full library by status — Shelved, Reading, TBR, Read — and sort alphabetically, reverse-alphabetically, or by recency.</div>
+      </div>
+      <div class="key-card">
+        <div class="key-label">Edit anything, inline</div>
+        <div class="key-value">Every field on a book is tap-to-edit directly on the detail screen. No separate edit mode, no form to submit.</div>
+      </div>
+      <div class="key-card">
+        <div class="key-label">Everything persists offline</div>
+        <div class="key-value">Local SQLite is the source of truth; in-memory state and the database stay in sync, so closing the app never loses a change.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="stack">
+    <div class="section-head">
+      <div class="section-label">Under the Hood</div>
+      <h2 class="section-title">Small, boring, on-device.</h2>
+    </div>
+    <div class="stack-grid">
+      <div class="stack-card"><div class="stack-layer">Framework</div><div class="stack-choice">Expo (React Native)</div><div class="stack-why">Native camera + SQLite access, no native build step during development.</div></div>
+      <div class="stack-card"><div class="stack-layer">Routing</div><div class="stack-choice">Expo Router</div><div class="stack-why">File-based routes keep the six screens self-evident from the folder structure.</div></div>
+      <div class="stack-card"><div class="stack-layer">Styling</div><div class="stack-choice">NativeWind</div><div class="stack-why">Utility classes, no hand-rolled StyleSheet objects — drives the OLED-black / warm-orange theme.</div></div>
+      <div class="stack-card"><div class="stack-layer">State</div><div class="stack-choice">Zustand</div><div class="stack-why">One small store holding the in-memory book list, hydrated from SQLite on launch.</div></div>
+      <div class="stack-card"><div class="stack-layer">Persistence</div><div class="stack-choice">expo-sqlite</div><div class="stack-why">Local, offline, no server — every add/edit/status-change writes straight to disk.</div></div>
+      <div class="stack-card"><div class="stack-layer">Book lookup</div><div class="stack-choice">Open Library → Google Books</div><div class="stack-why">Open Library needs no API key; Google Books fills the gaps it misses.</div></div>
+    </div>
+  </section>
+
+  <section id="get-started">
+    <div class="section-head">
+      <div class="section-label">Try It</div>
+      <h2 class="section-title">Running locally</h2>
+      <p class="section-sub">No account, no backend to stand up. Clone it, install, and point Expo Go at the QR code — or run it straight on a connected Android device.</p>
+    </div>
+    <div class="install">
+      <div class="code-block"><span class="comment"># clone &amp; install</span><br/><span class="prompt">$</span> <span class="cmd">git clone https://github.com/peds24/library-archive.git</span><br/><span class="prompt">$</span> <span class="cmd">cd library-archive &amp;&amp; npm install</span><br/><br/><span class="comment"># run</span><br/><span class="prompt">$</span> <span class="cmd">npx expo start --android</span></div>
+      <a class="btn btn-outline" style="align-self: flex-start;" href="https://github.com/peds24/library-archive#getting-started">Full setup instructions →</a>
+    </div>
+  </section>
+
+  <section id="status">
+    <div class="section-head">
+      <div class="section-label">Build Status</div>
+      <h2 class="section-title">All five phases complete.</h2>
+      <p class="section-sub">Built as a from-scratch exercise in AI-assisted development — a static mock-data prototype through to a fully persisted, camera-driven app.</p>
+    </div>
+    <div class="phases">
+      <div class="phase-row"><span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Phase 1</span> — Static prototype with mock data</div>
+      <div class="phase-row"><span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Phase 2</span> — Book detail view + Zustand state</div>
+      <div class="phase-row"><span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Phase 3</span> — Book lookup via Open Library, with Google Books fallback</div>
+      <div class="phase-row"><span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Phase 4</span> — Camera/barcode scanning, including bulk scan-and-confirm</div>
+      <div class="phase-row"><span class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="label">Phase 5</span> — SQLite persistence</div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <span>Library Archive — a personal tool, not a platform.</span>
+    <div class="footer-links">
+      <a href="https://github.com/peds24/library-archive">Source</a>
+      <a href="https://github.com/peds24/library-archive/blob/main/DEVLOG.md">Dev log</a>
+      <a href="https://github.com/peds24/library-archive/blob/main/docs/PROJECT_PLAN.md">Project plan</a>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var toggle = document.getElementById('theme-toggle');
+  var stored = null;
+  try { stored = localStorage.getItem('theme'); } catch (e) {}
+  if (stored === 'light' || stored === 'dark') root.setAttribute('data-theme', stored);
+
+  function current() {
+    var explicit = root.getAttribute('data-theme');
+    if (explicit === 'dark' || explicit === 'light') return explicit;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  }
+
+  toggle.addEventListener('click', function () {
+    var next = current() === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('theme', next); } catch (e) {}
+  });
+})();
+</script>
+</body>
+</html>
