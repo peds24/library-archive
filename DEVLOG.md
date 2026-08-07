@@ -775,6 +775,44 @@ GitHub Pages source still needs to be enabled in repo settings
 
 ---
 
+### 2026-08-06 — Real app logo + landing page recolored to the app's actual accent (branch: landing-page)
+
+**What happened:**
+- Replaced the placeholder "impossible-triangle" app icon with the real logo: the hexagon-and-three-lines mark from `inspo/mockups/ui-direction-material-crisp.html`, recolored to the app's actual committed accent (`accent.DEFAULT #9ecaff` in `tailwind.config.js`), on a flat dark Material 3 surface (`#0a0a0a`) — no hex-pattern texture, since that reads as noise at icon sizes and real production icons stay flat for legibility.
+- Regenerated all icon assets from that one mark, hand-built as SVG and rasterized with `qlmanage -t` (no rsvg/imagemagick/sharp available locally, and this avoided installing anything): `icon.png` (flat bg + mark, iOS/web), `android-icon-foreground.png` (transparent, mark scaled to sit well inside the adaptive-icon safe zone), `android-icon-background.png` (flat dark, no mark), `android-icon-monochrome.png` (white mark on transparent, for Android 13+ themed icons), `splash-icon.png` (transparent, same mark — `app.json`'s splash config already applies `backgroundColor: #000000` separately), and `favicon.png` (48×48, flat bg + mark at the mark's native viewBox scale).
+- Recolored `docs/index.html` from the mockup's default orange demo state to the app's real accent: swapped `--primary`/`--on-primary`/`--primary-container`/`--on-primary-container`/`--surface-tonal`/`--hexline` in all four theme blocks (default dark, light media-query override, explicit `data-theme="light"`, explicit `data-theme="dark"`) for the mockup's own "Signal blue" values, which are the same numbers already sitting in `tailwind.config.js`. The page's hex mark and CTA button pick this up automatically since they already referenced `var(--primary)` / `currentColor` — no markup changes needed, just tokens.
+- Copied the new `favicon.png` into `docs/` too, so the landing page and the app icon match.
+
+**Design Decisions:**
+
+*Why was the landing page orange in the first place, and why is that a mistake worth calling out?*
+The design-exploration mockup ships with orange as its default/demo accent (the first of four options in its "compare accent" switcher), and the first landing-page pass carried that default forward without checking which of the four the app had actually committed to. `tailwind.config.js`'s `accent` tokens (`#9ecaff` / `#003258` / `#003a63` / `#d1e4ff`) are the real answer — they match the mockup's "blue" option exactly, not orange. Lesson: when a design-exploration artifact has multiple options, the shipped app's actual token file is the source of truth for "which one was picked," not the mockup's default state.
+
+*Why flatten the hex-pattern background texture out of the icon assets instead of reproducing the reference image's textured tile?*
+The reference the request was built from shows a visible hex-grid texture behind the mark, which reads fine as a large concept image but would turn to visual noise at real icon render sizes (48px favicon, adaptive-icon home-screen sizes) — production app icons are almost always flat fields for exactly this reason. The app's own `surface` token (`#0a0a0a`) already *is* "a dark Material 3 background" on its own; texture wasn't part of what made the reference read as on-brand, the hexagon-mark shape and the blue accent were.
+
+*Why hand-build SVGs and rasterize with `qlmanage -t` instead of installing an SVG toolchain?*
+No `rsvg-convert`/`resvg`/ImageMagick/`sharp` was available locally, and installing one for a one-off icon regen is more footprint than the task needs. macOS's Quick Look thumbnailer (`qlmanage -t -s <size> -o <dir> file.svg`) renders SVGs with alpha preserved at arbitrary sizes for free — good enough for flat vector icon work, no dependency added to the repo or the machine.
+
+**Architecture state after this session:**
+```
+assets/images/
+  icon.png, splash-icon.png                        — flat #0a0a0a bg (icon.png only) + blue hex mark
+  android-icon-foreground.png, -monochrome.png      — transparent bg, mark only (blue / white)
+  android-icon-background.png                       — flat #0a0a0a, no mark
+  favicon.png                                       — 48×48 flat bg + mark
+docs/
+  index.html   — same structure as before, all four --primary-family tokens now the
+                 app's real accent blue instead of the mockup's default orange
+  favicon.png  — synced copy of assets/images/favicon.png
+Icon source-of-truth is now the hexagon+three-lines mark (viewBox 0 0 48 48,
+paths in docs/index.html and inspo/mockups/ui-direction-material-crisp.html) —
+if the mark ever changes, both the app icons and the landing page mark need
+regenerating from the same path data to stay in sync.
+```
+
+---
+
 <!-- TEMPLATE — copy this block to start a new session entry
 
 ### YYYY-MM-DD — Session Title
