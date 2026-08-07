@@ -1,8 +1,10 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import BookEditor from '@/src/components/BookEditor';
 import { useBookStore } from '@/src/store/bookStore';
+import { Colors, FontSize, Spacing } from '@/src/theme';
+import { CommonStyles } from '@/src/theme/common';
 import { Book } from '@/src/types/book';
 
 export default function BookDetailScreen() {
@@ -15,8 +17,8 @@ export default function BookDetailScreen() {
 
   if (!book) {
     return (
-      <View className="flex-1 items-center justify-center bg-surface">
-        <Text className="text-ink-faint">Book not found.</Text>
+      <View style={CommonStyles.screenCentered}>
+        <Text style={styles.missing}>Book not found.</Text>
       </View>
     );
   }
@@ -55,19 +57,25 @@ export default function BookDetailScreen() {
           title: book.title,
           headerBackTitle: 'Back',
           headerRight: () => (
-            <Pressable onPress={handleDelete} style={{ marginRight: 16 }} hitSlop={8}>
+            <Pressable onPress={handleDelete} style={styles.deleteButton} hitSlop={8}>
               <SymbolView
                 name={{ ios: 'trash', android: 'delete', web: 'delete' }}
-                tintColor="#ef4444"
+                tintColor={Colors.danger}
                 size={22}
               />
             </Pressable>
           ),
         }}
       />
-      <ScrollView className="flex-1 bg-surface" contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView style={CommonStyles.screen} contentContainerStyle={styles.content}>
         <BookEditor book={book} onChange={handleChange} />
       </ScrollView>
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  missing: { color: Colors.ink.faint, fontSize: FontSize.sm },
+  deleteButton: { marginRight: Spacing.lg },
+  content: { paddingBottom: 40 },
+});

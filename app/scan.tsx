@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { lookupByISBN } from '@/src/services/bookLookup';
 import { useBookStore } from '@/src/store/bookStore';
-import { colors } from '@/src/theme/colors';
+import { Colors, FontSize, FontWeight, Radius, Spacing } from '@/src/theme';
+import { CommonStyles } from '@/src/theme/common';
 import { Book } from '@/src/types/book';
 
 type ScanPhase = 'scanning' | 'fetching' | 'preview' | 'duplicate' | 'not-found' | 'error';
@@ -47,15 +48,13 @@ export default function ScanScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'Scan Book' }} />
-        <View className="flex-1 items-center justify-center bg-surface px-8 gap-5">
-          <Text className="text-ink text-lg font-semibold text-center">
-            Camera access needed
-          </Text>
-          <Text className="text-ink-muted text-base text-center">
+        <View style={[CommonStyles.screenCentered, styles.permissionScreen]}>
+          <Text style={styles.permissionHeading}>Camera access needed</Text>
+          <Text style={styles.permissionBody}>
             Allow camera access to scan barcodes on your books.
           </Text>
-          <Pressable onPress={requestPermission} className="bg-accent px-6 py-3 rounded-full">
-            <Text className="text-accent-on font-semibold text-base">Allow Camera</Text>
+          <Pressable onPress={requestPermission} style={styles.inlinePill}>
+            <Text style={CommonStyles.pillFilledLabel}>Allow Camera</Text>
           </Pressable>
         </View>
       </>
@@ -124,37 +123,33 @@ export default function ScanScreen() {
 
         {/* Scan frame */}
         {phase === 'scanning' && (
-          <View style={StyleSheet.absoluteFill} className="items-center justify-center">
+          <View style={[StyleSheet.absoluteFill, styles.overlay]}>
             <View style={styles.frame} />
-            <Text className="text-white/60 text-sm mt-5">Point at the barcode on the back cover</Text>
+            <Text style={styles.frameCaption}>Point at the barcode on the back cover</Text>
           </View>
         )}
 
         {/* Fetching overlay */}
         {phase === 'fetching' && (
-          <View style={StyleSheet.absoluteFill} className="items-center justify-center bg-black/60">
-            <ActivityIndicator size="large" color={colors.accent.default} />
-            <Text className="text-white/70 text-sm mt-3">Looking up book…</Text>
+          <View style={[StyleSheet.absoluteFill, styles.overlay, styles.scrim]}>
+            <ActivityIndicator size="large" color={Colors.accent.default} />
+            <Text style={styles.scrimCaption}>Looking up book…</Text>
           </View>
         )}
 
         {/* Bottom sheet — preview / duplicate / not-found / error */}
         {showBottomSheet && (
-          <View className="absolute bottom-0 left-0 right-0 bg-surface-2 rounded-t-3xl px-6 pt-6 pb-10 gap-4">
+          <View style={styles.sheet}>
             {/* Book preview */}
             {(phase === 'preview' || phase === 'duplicate') && preview && (
-              <View className="flex-row gap-4">
-                <Image
-                  source={{ uri: preview.coverImage }}
-                  className="w-16 h-24 rounded-lg bg-surface"
-                  resizeMode="cover"
-                />
-                <View className="flex-1 justify-center gap-1">
-                  <Text className="text-ink font-semibold text-base leading-snug" numberOfLines={2}>
+              <View style={styles.sheetPreview}>
+                <Image source={{ uri: preview.coverImage }} style={styles.sheetCover} resizeMode="cover" />
+                <View style={styles.sheetPreviewText}>
+                  <Text style={styles.sheetTitle} numberOfLines={2}>
                     {preview.title}
                   </Text>
-                  <Text className="text-ink-muted text-sm">{preview.author}</Text>
-                  <Text className="text-ink-faint text-xs mt-1">
+                  <Text style={styles.sheetAuthor}>{preview.author}</Text>
+                  <Text style={styles.sheetMeta}>
                     {preview.genre} · {preview.pages} pages
                   </Text>
                 </View>
@@ -163,16 +158,14 @@ export default function ScanScreen() {
 
             {/* Duplicate notice */}
             {phase === 'duplicate' && (
-              <Text className="text-accent text-sm text-center font-medium">
-                Already in your library.
-              </Text>
+              <Text style={styles.duplicateNotice}>Already in your library.</Text>
             )}
 
             {/* Not found */}
             {phase === 'not-found' && (
-              <View className="items-center gap-2 py-2">
-                <Text className="text-ink font-semibold text-base">Book not found</Text>
-                <Text className="text-ink-faint text-sm text-center">
+              <View style={styles.sheetMessage}>
+                <Text style={styles.sheetMessageHeading}>Book not found</Text>
+                <Text style={styles.sheetMessageBody}>
                   This ISBN wasn't in any database.{'\n'}Add it manually or scan another.
                 </Text>
               </View>
@@ -180,9 +173,9 @@ export default function ScanScreen() {
 
             {/* Network error */}
             {phase === 'error' && (
-              <View className="items-center gap-2 py-2">
-                <Text className="text-ink font-semibold text-base">Network error</Text>
-                <Text className="text-ink-faint text-sm text-center">
+              <View style={styles.sheetMessage}>
+                <Text style={styles.sheetMessageHeading}>Network error</Text>
+                <Text style={styles.sheetMessageBody}>
                   Couldn't reach the book databases.{'\n'}Check your connection.
                 </Text>
               </View>
@@ -190,33 +183,33 @@ export default function ScanScreen() {
 
             {/* Actions */}
             {phase === 'preview' && (
-              <View className="gap-2">
-                <Pressable onPress={handleConfirm} className="bg-accent py-3 rounded-full items-center">
-                  <Text className="text-accent-on font-semibold text-base">Confirm Book</Text>
+              <View style={styles.sheetActions}>
+                <Pressable onPress={handleConfirm} style={CommonStyles.pillFilled}>
+                  <Text style={CommonStyles.pillFilledLabel}>Confirm Book</Text>
                 </Pressable>
-                <Pressable onPress={resumeScanning} className="py-2 items-center">
-                  <Text className="text-ink-faint font-medium">Not this book — rescan</Text>
+                <Pressable onPress={resumeScanning} style={CommonStyles.textButton}>
+                  <Text style={CommonStyles.textButtonLabel}>Not this book — rescan</Text>
                 </Pressable>
               </View>
             )}
 
             {(phase === 'duplicate' || phase === 'error') && (
-              <Pressable onPress={resumeScanning} className="border border-border py-3 rounded-full items-center">
-                <Text className="text-accent font-semibold">Scan another</Text>
+              <Pressable onPress={resumeScanning} style={CommonStyles.pillOutline}>
+                <Text style={styles.scanAnotherLabel}>Scan another</Text>
               </Pressable>
             )}
 
             {phase === 'not-found' && (
-              <View className="gap-2">
+              <View style={styles.sheetActions}>
                 <Pressable
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   onPress={() => router.push({ pathname: '/manual-entry' as any, params: { isbn: lastIsbn } })}
-                  className="bg-accent py-3 rounded-full items-center"
+                  style={CommonStyles.pillFilled}
                 >
-                  <Text className="text-accent-on font-semibold">Add Manually</Text>
+                  <Text style={styles.addManuallyLabel}>Add Manually</Text>
                 </Pressable>
-                <Pressable onPress={resumeScanning} className="border border-border py-3 rounded-full items-center">
-                  <Text className="text-accent font-semibold">Scan another</Text>
+                <Pressable onPress={resumeScanning} style={CommonStyles.pillOutline}>
+                  <Text style={styles.scanAnotherLabel}>Scan another</Text>
                 </Pressable>
               </View>
             )}
@@ -228,12 +221,91 @@ export default function ScanScreen() {
 }
 
 const styles = StyleSheet.create({
-  black: { flex: 1, backgroundColor: '#000' },
+  black: { flex: 1, backgroundColor: Colors.camera.bg },
+  overlay: { alignItems: 'center', justifyContent: 'center' },
+  scrim: { backgroundColor: Colors.camera.scrim },
+
   frame: {
     width: 260,
     height: 160,
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.7)',
-    borderRadius: 12,
+    borderColor: Colors.camera.frame,
+    borderRadius: Radius.md,
   },
+  frameCaption: {
+    color: Colors.camera.caption,
+    fontSize: FontSize.sm,
+    marginTop: Spacing.xl,
+  },
+  scrimCaption: {
+    color: Colors.camera.captionStrong,
+    fontSize: FontSize.sm,
+    marginTop: Spacing.md,
+  },
+
+  permissionScreen: { paddingHorizontal: Spacing.xxxl, gap: Spacing.xl },
+  permissionHeading: {
+    color: Colors.ink.default,
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.semibold,
+    textAlign: 'center',
+  },
+  permissionBody: { color: Colors.ink.muted, fontSize: FontSize.base, textAlign: 'center' },
+  // A hug-width filled pill, unlike the full-width CommonStyles.pillFilled.
+  inlinePill: {
+    backgroundColor: Colors.accent.default,
+    paddingHorizontal: Spacing.xxl,
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.full,
+  },
+
+  sheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: Colors.surface.raised,
+    borderTopLeftRadius: Radius.sheet,
+    borderTopRightRadius: Radius.sheet,
+    paddingHorizontal: Spacing.xxl,
+    paddingTop: Spacing.xxl,
+    paddingBottom: 40,
+    gap: Spacing.lg,
+  },
+  sheetPreview: { flexDirection: 'row', gap: Spacing.lg },
+  sheetCover: {
+    width: 64,
+    height: 96,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.surface.default,
+  },
+  sheetPreviewText: { flex: 1, justifyContent: 'center', gap: Spacing.xs },
+  sheetTitle: {
+    color: Colors.ink.default,
+    fontWeight: FontWeight.semibold,
+    fontSize: FontSize.base,
+    lineHeight: 22,
+  },
+  sheetAuthor: { color: Colors.ink.muted, fontSize: FontSize.sm },
+  sheetMeta: { color: Colors.ink.faint, fontSize: FontSize.xs, marginTop: Spacing.xs },
+
+  duplicateNotice: {
+    color: Colors.accent.default,
+    fontSize: FontSize.sm,
+    textAlign: 'center',
+    fontWeight: FontWeight.medium,
+  },
+  sheetMessage: { alignItems: 'center', gap: Spacing.sm, paddingVertical: Spacing.sm },
+  sheetMessageHeading: {
+    color: Colors.ink.default,
+    fontWeight: FontWeight.semibold,
+    fontSize: FontSize.base,
+  },
+  sheetMessageBody: { color: Colors.ink.faint, fontSize: FontSize.sm, textAlign: 'center' },
+
+  sheetActions: { gap: Spacing.sm },
+  // These two sit in the sheet rather than on a screen, and were sized a step down
+  // from the shared pill labels before the port — kept as-is.
+  scanAnotherLabel: { color: Colors.accent.default, fontWeight: FontWeight.semibold },
+  addManuallyLabel: { color: Colors.accent.on, fontWeight: FontWeight.semibold },
 });

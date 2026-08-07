@@ -982,6 +982,101 @@ Verified: no horizontal overflow at 360-1440. Desktop layout unchanged.
 
 ---
 
+### 2026-08-07 — Porting off NativeWind to StyleSheet + theme tokens
+
+Prompted by comparing this repo against the comic-book tracker (`peds24/longbox`),
+which is the same stack — Expo, Expo Router, TypeScript, expo-sqlite, expo-camera —
+minus NativeWind. That app styles with plain `StyleSheet` against a `theme.ts` token
+file, and reads considerably less like a web project as a result. This session moves
+this app to the same approach. Purely a styling-layer change: no screen, store,
+schema, or database change, and the app looks identical.
+
+**What happened:**
+- Added `src/theme/index.ts` — `Colors`, `Spacing`, `Radius`, `FontSize`,
+  `FontWeight`, `LetterSpacing`. The values are the old `tailwind.config.js`
+  `theme.extend` block, unchanged.
+- Added `src/theme/common.ts` — `CommonStyles`, for shapes used by more than one
+  screen (screen shells, filled/outlined pill buttons, inline warnings).
+- Converted all 13 files that used `className` to `StyleSheet`.
+- Deleted `tailwind.config.js`, `global.css`, `nativewind-env.d.ts`,
+  `babel.config.js`, and `src/theme/colors.ts`.
+- Dropped `nativewind`, `tailwindcss`, and `@babel/core`; removed `withNativeWind`
+  from `metro.config.js` and `jsxImportSource` from `tsconfig.json`.
+- Updated `CLAUDE.md`.
+- Verified with `npx tsc --noEmit` and a full `npx expo export --platform android`,
+  which produced a 2.8 MB Hermes bundle with no babel config present.
+
+**Design Decisions:**
+
+*Why move at all, when NativeWind worked?*
+It did work, and speed of iteration was real. What it cost was a support cast that
+had nothing to do with the app: a Tailwind config, a CSS file imported into the root
+layout, a Metro plugin, a Babel preset, and a generated `.d.ts`. Five files and three
+dependencies existed only to let a native app be styled in CSS vocabulary. It also
+imposed a rule that has to be remembered rather than enforced — class strings must
+appear literally in source or the Tailwind scanner misses them, which is why
+`BookCard` looked up status classes from an object instead of composing a string.
+That constraint is a web build-step artifact leaking into a native app.
+
+The counter-argument is verbosity, and it is true: `StyleSheet` is more lines. What
+it buys is that the styling has no build step at all, and no failure mode where a
+class silently does nothing.
+
+*Why a separate `common.ts` instead of just repeating styles?*
+Under Tailwind, `bg-accent py-3 rounded-full items-center` was as cheap to write the
+fifth time as the first, so the primary-button treatment was simply repeated across
+`add`, `manual-entry`, `scan`, `scan-review`, and the not-found states. Ported
+literally, that becomes five copies of the same six properties, free to drift.
+
+The alternative was a `PillButton` component. Rejected for this pass: the task was to
+change how styles are expressed, not to restructure the component tree, and folding
+five call sites into a new component with its own variant props would have made the
+diff much harder to check against the old rendering. `CommonStyles` gets the
+deduplication without moving any JSX. Extracting a component later stays open.
+
+*Why keep the lookup-object pattern in `BookCard` when its reason is gone?*
+The Tailwind scanner is no longer there to require it, but `STATUS_STYLE` keyed by
+status value is still the clearest way to keep four related treatments visible side
+by side, and it is what the `{ bg, fg }` pairs in the token file already look like.
+Changed from class-name strings to token references; the shape stayed.
+
+*Why is it safe to delete `babel.config.js` outright rather than strip it back?*
+It only existed to carry `jsxImportSource: 'nativewind'` and `nativewind/babel`. On
+SDK 50+ Expo's Metro transformer falls back to `babel-preset-expo` when no config is
+present, and longbox — same Expo 57 — ships without one. Confirmed here by exporting
+the Android bundle after deleting it.
+
+*Tokens vs. literals — where the line is.*
+Everything with a name in the design system comes from `src/theme/index.ts`. Values
+that fell between Tailwind's steps (a 6px gap, a 10px pill inset, a 56px cover) stay
+as literals in the component's own StyleSheet rather than growing the scale with
+half-steps that would only ever have one caller. The scale is documented as 4px-based
+so it stays predictable.
+
+One thing worth recording: `Spacing` deliberately does not include every value in
+use. A token scale that has to name 2, 4, 6, 8, 10, 12, 14, 16 is not a scale.
+
+**Architecture state after this session:**
+```
+app/                      unchanged in structure; all className -> StyleSheet
+src/components/           unchanged in structure; all className -> StyleSheet
+src/theme/
+  index.ts                Colors, Spacing, Radius, FontSize, FontWeight,
+                          LetterSpacing  (was tailwind.config.js theme.extend)
+  common.ts               CommonStyles — shapes used by 2+ screens
+src/services/             untouched
+src/store/                untouched
+
+Gone: tailwind.config.js, global.css, nativewind-env.d.ts, babel.config.js,
+      src/theme/colors.ts, and the nativewind / tailwindcss / @babel/core deps.
+
+Styling now has no build step. Each screen or component carries its own
+StyleSheet at the bottom of the file, reading tokens from src/theme.
+Nothing about routing, state, lookup, or persistence changed.
+```
+
+---
+
 <!-- TEMPLATE — copy this block to start a new session entry
 
 ### YYYY-MM-DD — Session Title

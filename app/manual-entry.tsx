@@ -1,8 +1,10 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import M3TextField from '@/src/components/M3TextField';
 import { useBookStore } from '@/src/store/bookStore';
+import { Spacing } from '@/src/theme';
+import { CommonStyles } from '@/src/theme/common';
 
 export default function ManualEntryScreen() {
   const { isbn: isbnParam } = useLocalSearchParams<{ isbn?: string }>();
@@ -49,13 +51,10 @@ export default function ManualEntryScreen() {
     <>
       <Stack.Screen options={{ title: 'Add Manually' }} />
       <KeyboardAvoidingView
-        className="flex-1 bg-surface"
+        style={CommonStyles.screen}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView
-          contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 48 }}
-          keyboardShouldPersistTaps="handled"
-        >
+        <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
           <M3TextField
             label="ISBN"
             value={isbn}
@@ -107,7 +106,7 @@ export default function ManualEntryScreen() {
           />
 
           {duplicate && (
-            <Text className="text-red-400 text-sm text-center">
+            <Text style={CommonStyles.warning}>
               A book with this ISBN is already in your library.
             </Text>
           )}
@@ -115,9 +114,9 @@ export default function ManualEntryScreen() {
           <Pressable
             onPress={handleAdd}
             disabled={!canAdd}
-            className={`py-3 rounded-full items-center mt-2 ${canAdd ? 'bg-accent' : 'bg-surface-2'}`}
+            style={[CommonStyles.pillFilled, styles.submit, !canAdd && CommonStyles.pillDisabled]}
           >
-            <Text className={`font-semibold text-base ${canAdd ? 'text-accent-on' : 'text-ink-faint'}`}>
+            <Text style={[CommonStyles.pillFilledLabel, !canAdd && CommonStyles.pillDisabledLabel]}>
               Add to Library
             </Text>
           </Pressable>
@@ -126,3 +125,8 @@ export default function ManualEntryScreen() {
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  form: { padding: Spacing.xl, gap: Spacing.lg, paddingBottom: 48 },
+  submit: { marginTop: Spacing.sm },
+});

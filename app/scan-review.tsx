@@ -1,8 +1,10 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import BookEditor from '@/src/components/BookEditor';
 import { useBookStore } from '@/src/store/bookStore';
+import { Colors, FontSize, Radius, Spacing } from '@/src/theme';
+import { CommonStyles } from '@/src/theme/common';
 import { Book } from '@/src/types/book';
 
 /**
@@ -29,12 +31,10 @@ export default function ScanReviewScreen() {
     return (
       <>
         <Stack.Screen options={{ title: 'Confirm Book' }} />
-        <View className="flex-1 items-center justify-center bg-surface px-8 gap-4">
-          <Text className="text-ink-muted text-base text-center">
-            Something went wrong reading that scan.
-          </Text>
-          <Pressable onPress={() => router.back()} className="bg-accent px-6 py-3 rounded-full">
-            <Text className="text-accent-on font-semibold">Back to Scanner</Text>
+        <View style={[CommonStyles.screenCentered, styles.errorScreen]}>
+          <Text style={styles.errorText}>Something went wrong reading that scan.</Text>
+          <Pressable onPress={() => router.back()} style={styles.inlinePill}>
+            <Text style={CommonStyles.pillFilledLabel}>Back to Scanner</Text>
           </Pressable>
         </View>
       </>
@@ -67,46 +67,59 @@ export default function ScanReviewScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'Confirm Book' }} />
-      <ScrollView className="flex-1 bg-surface" contentContainerStyle={{ paddingBottom: 40 }}>
-        <View className="px-6 pt-4">
-          <Text className="text-ink-faint text-sm text-center">
-            Check the details before adding — tap any field to edit it.
-          </Text>
+      <ScrollView style={CommonStyles.screen} contentContainerStyle={styles.content}>
+        <View style={styles.hintSection}>
+          <Text style={styles.hint}>Check the details before adding — tap any field to edit it.</Text>
         </View>
 
         <BookEditor book={draft} onChange={handleChange} showDateAdded={false} />
 
-        <View className="px-6 pt-8 gap-3">
+        <View style={styles.actions}>
           {isDuplicate && (
-            <Text className="text-red-400 text-sm text-center">
-              This book is already in your library.
-            </Text>
+            <Text style={CommonStyles.warning}>This book is already in your library.</Text>
           )}
 
           <Pressable
             onPress={handleAddAndFinish}
             disabled={isDuplicate}
-            className={`py-3 rounded-full items-center ${isDuplicate ? 'bg-surface-2' : 'bg-accent'}`}
+            style={[CommonStyles.pillFilled, isDuplicate && CommonStyles.pillDisabled]}
           >
-            <Text className={`font-semibold text-base ${isDuplicate ? 'text-ink-faint' : 'text-accent-on'}`}>
+            <Text style={[CommonStyles.pillFilledLabel, isDuplicate && CommonStyles.pillDisabledLabel]}>
               Add to Library
             </Text>
           </Pressable>
 
           <Pressable
             onPress={isDuplicate ? () => router.back() : handleAddAndScanAnother}
-            className="py-3 rounded-full items-center border border-border"
+            style={CommonStyles.pillOutline}
           >
-            <Text className="text-accent font-semibold text-base">
+            <Text style={CommonStyles.pillOutlineLabel}>
               {isDuplicate ? 'Scan Another' : 'Add & Scan Another'}
             </Text>
           </Pressable>
 
-          <Pressable onPress={() => router.back()} className="py-2 items-center">
-            <Text className="text-ink-faint font-medium">Discard — wrong book</Text>
+          <Pressable onPress={() => router.back()} style={CommonStyles.textButton}>
+            <Text style={CommonStyles.textButtonLabel}>Discard — wrong book</Text>
           </Pressable>
         </View>
       </ScrollView>
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  content: { paddingBottom: 40 },
+  hintSection: { paddingHorizontal: Spacing.xxl, paddingTop: Spacing.lg },
+  hint: { color: Colors.ink.faint, fontSize: FontSize.sm, textAlign: 'center' },
+  actions: { paddingHorizontal: Spacing.xxl, paddingTop: Spacing.xxxl, gap: Spacing.md },
+
+  errorScreen: { paddingHorizontal: Spacing.xxxl, gap: Spacing.lg },
+  errorText: { color: Colors.ink.muted, fontSize: FontSize.base, textAlign: 'center' },
+  // A hug-width filled pill, unlike the full-width CommonStyles.pillFilled.
+  inlinePill: {
+    backgroundColor: Colors.accent.default,
+    paddingHorizontal: Spacing.xxl,
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.full,
+  },
+});
